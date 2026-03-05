@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MailMind – AI Email Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #0a0b0f;
+  --surface: #111318;
+  --surface2: #181c25;
+  --surface3: #1e2330;
+  --border: #1f2433;
+  --border2: #2a3048;
+  --text: #e8eaf2;
+  --muted: #5a6282;
+  --muted2: #8892b0;
+  --urgent: #ff4d6d;
+  --meeting: #00c6ff;
+  --newsletter: #a78bfa;
+  --action: #f59e0b;
+  --fyi: #34d399;
+  --urgent-bg: rgba(255,77,109,0.1);
+  --meeting-bg: rgba(0,198,255,0.1);
+  --newsletter-bg: rgba(167,139,250,0.1);
+  --action-bg: rgba(245,158,11,0.1);
+  --fyi-bg: rgba(52,211,153,0.1);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;overflow:hidden;font-size:14px;}
+
+/* SIDEBAR NAV */
+.sidenav{width:52px;min-width:52px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:4px;z-index:10;}
+.sidenav-logo{width:34px;height:34px;background:linear-gradient(135deg,var(--meeting),#7c3aed);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1rem;margin-bottom:16px;cursor:pointer;}
+.sidenav-item{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;transition:all 0.15s;position:relative;color:var(--muted);}
+.sidenav-item:hover{background:var(--surface2);color:var(--text);}
+.sidenav-item.active{background:var(--meeting-bg);color:var(--meeting);}
+.sidenav-item.active::before{content:'';position:absolute;left:0;top:20%;height:60%;width:3px;background:var(--meeting);border-radius:0 2px 2px 0;}
+.sidenav-badge{position:absolute;top:-3px;right:-3px;width:16px;height:16px;background:var(--urgent);border-radius:50%;font-size:0.58rem;font-weight:700;display:flex;align-items:center;justify-content:center;color:white;border:2px solid var(--surface);}
+.sidenav-bottom{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.avatar-sm{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#00c6ff,#a78bfa);display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;}
+
+/* MAIN LAYOUT */
+.app{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* TOPBAR */
+.topbar{height:54px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:14px;background:var(--surface);flex-shrink:0;}
+.topbar-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;letter-spacing:-0.3px;white-space:nowrap;}
+.search-bar{flex:1;max-width:340px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;padding:0 11px;gap:7px;height:34px;transition:border-color 0.2s;}
+.search-bar:focus-within{border-color:var(--meeting);}
+.search-bar input{background:none;border:none;outline:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.83rem;flex:1;}
+.search-bar input::placeholder{color:var(--muted);}
+.topbar-actions{margin-left:auto;display:flex;gap:7px;align-items:center;}
+.btn{padding:6px 13px;border-radius:7px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:500;transition:all 0.15s;}
+.btn-ghost{background:transparent;color:var(--muted2);border:1px solid var(--border);}
+.btn-ghost:hover{background:var(--surface2);color:var(--text);}
+.btn-primary{background:linear-gradient(135deg,var(--meeting),#0072ff);color:white;}
+.btn-primary:hover{opacity:0.85;transform:translateY(-1px);}
+.icon-btn{width:32px;height:32px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.85rem;position:relative;transition:all 0.15s;}
+.icon-btn:hover{background:var(--border);}
+.notif-dot{position:absolute;top:-2px;right:-2px;width:7px;height:7px;background:var(--urgent);border-radius:50%;border:2px solid var(--surface);}
+
+/* PANELS WRAPPER */
+.panels{flex:1;display:flex;overflow:hidden;}
+
+/* LEFT PANEL - email list */
+.email-panel{width:310px;min-width:310px;display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden;}
+.meeting-banner{background:linear-gradient(90deg,rgba(0,198,255,0.1),rgba(0,198,255,0.03));border-bottom:1px solid rgba(0,198,255,0.18);padding:8px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0;animation:pulseBorder 2.5s infinite;}
+@keyframes pulseBorder{0%,100%{border-bottom-color:rgba(0,198,255,0.18);}50%{border-bottom-color:rgba(0,198,255,0.45);}}
+.banner-dot{width:7px;height:7px;background:var(--meeting);border-radius:50%;flex-shrink:0;animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.banner-text{flex:1;font-size:0.75rem;line-height:1.35;}
+.banner-text strong{color:var(--meeting);}
+.banner-time{color:var(--muted);font-size:0.7rem;}
+.banner-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.85rem;padding:0 2px;}
+.filter-tabs{display:flex;gap:2px;padding:10px 12px;border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;}
+.filter-tabs::-webkit-scrollbar{display:none;}
+.filter-tab{padding:4px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent;transition:all 0.15s;color:var(--muted);}
+.filter-tab:hover{color:var(--text);}
+.filter-tab.active-tab{color:var(--meeting);background:var(--meeting-bg);border-color:rgba(0,198,255,0.25);}
+.email-list{flex:1;overflow-y:auto;}
+.email-list::-webkit-scrollbar{width:3px;}
+.email-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.email-card{padding:13px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s;position:relative;animation:fadeUp 0.4s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.email-card:hover{background:var(--surface);}
+.email-card.active{background:var(--surface2);}
+.email-card.active::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--meeting);}
+.card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.sender-row{display:flex;align-items:center;gap:7px;}
+.sender-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.62rem;font-weight:700;font-family:'Syne',sans-serif;flex-shrink:0;}
+.email-sender{font-size:0.82rem;font-weight:500;}
+.email-card.unread .email-sender{font-weight:700;}
+.email-time{font-size:0.7rem;color:var(--muted);flex-shrink:0;}
+.email-subject{font-size:0.79rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;}
+.email-snippet{font-size:0.74rem;color:var(--muted);display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4;}
+.card-tags{display:flex;gap:4px;margin-top:6px;}
+.tag{font-size:0.62rem;font-weight:600;letter-spacing:0.04em;padding:1px 6px;border-radius:20px;text-transform:uppercase;}
+.tag.urgent{background:var(--urgent-bg);color:var(--urgent);}
+.tag.meeting{background:var(--meeting-bg);color:var(--meeting);}
+.tag.newsletter{background:var(--newsletter-bg);color:var(--newsletter);}
+.tag.action{background:var(--action-bg);color:var(--action);}
+.tag.fyi{background:var(--fyi-bg);color:var(--fyi);}
+.unread-dot{width:6px;height:6px;background:var(--meeting);border-radius:50%;flex-shrink:0;}
+
+/* CENTER - detail */
+.detail-panel{flex:1;overflow-y:auto;padding:24px 26px;border-right:1px solid var(--border);}
+.detail-panel::-webkit-scrollbar{width:3px;}
+.detail-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.detail-subject{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.3;margin-bottom:10px;}
+.detail-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.d-sender-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;font-family:'Syne',sans-serif;flex-shrink:0;}
+.d-name{font-size:0.82rem;font-weight:600;}
+.d-email{font-size:0.72rem;color:var(--muted);}
+.d-time{font-size:0.72rem;color:var(--muted);margin-left:auto;}
+.detail-tags{display:flex;gap:5px;margin-bottom:16px;}
+.ai-box{background:linear-gradient(135deg,rgba(0,198,255,0.07),rgba(167,139,250,0.06));border:1px solid rgba(0,198,255,0.18);border-radius:11px;padding:15px 17px;margin-bottom:16px;position:relative;overflow:hidden;}
+.ai-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--meeting),var(--newsletter));}
+.ai-label{font-size:0.63rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--meeting);margin-bottom:6px;}
+.ai-text{font-size:0.83rem;line-height:1.6;color:#c4cce8;}
+.actions-box{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:14px 16px;margin-bottom:16px;}
+.section-lbl{font-size:0.62rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.action-item{display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);font-size:0.81rem;line-height:1.4;}
+.action-item:last-child{border-bottom:none;}
+.action-check{width:15px;height:15px;border:1.5px solid var(--action);border-radius:4px;flex-shrink:0;margin-top:2px;cursor:pointer;transition:all 0.15s;}
+.action-check:hover{background:var(--action-bg);}
+.email-body{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:18px;font-size:0.83rem;line-height:1.75;color:#aab4d0;margin-bottom:16px;}
+.email-body p{margin-bottom:10px;}
+.email-body p:last-child{margin-bottom:0;}
+.reply-bar{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:12px 16px;display:flex;align-items:center;gap:10px;transition:border-color 0.2s;}
+.reply-bar:focus-within{border-color:var(--meeting);}
+.reply-bar input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.83rem;}
+.reply-bar input::placeholder{color:var(--muted);}
+.reply-send{width:30px;height:30px;background:linear-gradient(135deg,var(--meeting),#0072ff);border:none;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.8rem;transition:all 0.15s;flex-shrink:0;}
+.reply-send:hover{opacity:0.8;transform:scale(1.05);}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);gap:10px;font-size:0.88rem;}
+.empty-icon{font-size:2.5rem;opacity:0.25;}
+
+/* RIGHT PANEL */
+.right-panel{width:290px;min-width:290px;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);}
+
+/* CALENDAR */
+.calendar-section{padding:16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.cal-month{font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem;}
+.cal-nav{display:flex;gap:4px;}
+.cal-nav-btn{width:24px;height:24px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:var(--muted2);transition:all 0.15s;}
+.cal-nav-btn:hover{background:var(--border);color:var(--text);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;}
+.cal-day-label{text-align:center;font-size:0.62rem;font-weight:600;color:var(--muted);padding:3px 0;letter-spacing:0.04em;}
+.cal-day{text-align:center;font-size:0.75rem;padding:5px 2px;border-radius:6px;cursor:pointer;transition:all 0.15s;color:var(--muted2);position:relative;}
+.cal-day:hover{background:var(--surface2);color:var(--text);}
+.cal-day.today{background:var(--meeting-bg);color:var(--meeting);font-weight:700;}
+.cal-day.has-event::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--meeting);}
+.cal-day.has-urgent::after{background:var(--urgent);}
+.cal-day.other-month{color:var(--border2);pointer-events:none;}
+.cal-day.selected{background:var(--meeting);color:white;font-weight:700;}
+.cal-day.selected::after{display:none;}
+
+/* ACTIVITY BAR */
+.activity-section{flex:1;overflow-y:auto;padding:0;}
+.activity-section::-webkit-scrollbar{width:3px;}
+.activity-section::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.activity-header{padding:14px 16px 10px;position:sticky;top:0;background:var(--surface);z-index:2;border-bottom:1px solid var(--border);}
+.activity-title{font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;margin-bottom:2px;}
+.activity-subtitle{font-size:0.7rem;color:var(--muted);}
+.activity-list{padding:10px 14px;}
+.activity-item{display:flex;gap:10px;margin-bottom:14px;position:relative;animation:fadeUp 0.4s ease both;}
+.activity-item:not(:last-child)::before{content:'';position:absolute;left:14px;top:30px;bottom:-14px;width:1px;background:var(--border);}
+.activity-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;border:2px solid var(--bg);}
+.activity-dot.meeting{background:var(--meeting-bg);border-color:rgba(0,198,255,0.3);}
+.activity-dot.email{background:var(--newsletter-bg);border-color:rgba(167,139,250,0.3);}
+.activity-dot.action{background:var(--action-bg);border-color:rgba(245,158,11,0.3);}
+.activity-dot.urgent{background:var(--urgent-bg);border-color:rgba(255,77,109,0.3);}
+.activity-dot.fyi{background:var(--fyi-bg);border-color:rgba(52,211,153,0.3);}
+.activity-info{flex:1;min-width:0;}
+.activity-name{font-size:0.8rem;font-weight:500;line-height:1.3;margin-bottom:2px;}
+.activity-desc{font-size:0.72rem;color:var(--muted);line-height:1.35;}
+.activity-time{font-size:0.68rem;color:var(--muted);white-space:nowrap;flex-shrink:0;margin-top:2px;}
+.activity-badge{display:inline-block;font-size:0.6rem;font-weight:700;padding:1px 6px;border-radius:20px;text-transform:uppercase;margin-top:4px;}
+.activity-badge.meeting{background:var(--meeting-bg);color:var(--meeting);}
+.activity-badge.urgent{background:var(--urgent-bg);color:var(--urgent);}
+.activity-badge.action{background:var(--action-bg);color:var(--action);}
+.activity-badge.done{background:var(--fyi-bg);color:var(--fyi);}
+
+/* DAY EVENTS POPUP */
+.day-events{padding:10px 14px;border-top:1px solid var(--border);background:var(--surface2);flex-shrink:0;max-height:120px;overflow-y:auto;}
+.day-events-title{font-size:0.65rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
+.day-event-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px;background:var(--surface);border:1px solid var(--border);margin-bottom:5px;font-size:0.76rem;}
+.day-event-color{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.day-event-time{color:var(--muted);font-size:0.68rem;margin-left:auto;white-space:nowrap;}
+</style>
+</head>
+<body>
+
+<!-- ICON NAV -->
+<nav class="sidenav">
+  <div class="sidenav-logo">✦</div>
+  <div class="sidenav-item active" title="Inbox">📥</div>
+  <div class="sidenav-item" title="Calendar" onclick="switchView('calendar')">📅</div>
+  <div class="sidenav-item" title="Activity" onclick="switchView('activity')">📊</div>
+  <div class="sidenav-item" title="Settings">⚙️</div>
+  <div class="sidenav-bottom">
+    <div class="avatar-sm">M</div>
+  </div>
+</nav>
+
+<!-- APP -->
+<div class="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-title">MailMind</div>
+    <div class="search-bar">
+      <span style="color:var(--muted);font-size:0.85rem">🔍</span>
+      <input type="text" placeholder="Search emails, events…"/>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost">↻ Sync</button>
+      <button class="btn btn-primary">✦ Summarize All</button>
+      <div class="icon-btn">🔔<div class="notif-dot"></div></div>
+    </div>
+  </div>
+
+  <!-- PANELS -->
+  <div class="panels">
+
+    <!-- EMAIL LIST -->
+    <div class="email-panel">
+      <div class="meeting-banner" id="meetingBanner">
+        <div class="banner-dot"></div>
+        <div class="banner-text">
+          <strong>Meeting in 45 min:</strong> Project Sync — 2:00 PM
+          <div class="banner-time">From prof.asante@ashesi.edu.gh</div>
+        </div>
+        <button class="banner-close" onclick="document.getElementById('meetingBanner').style.display='none'">✕</button>
+      </div>
+
+      <div class="filter-tabs" id="filterTabs">
+        <div class="filter-tab active-tab" onclick="setFilter('all',this)">All</div>
+        <div class="filter-tab" onclick="setFilter('urgent',this)">🔴 Urgent</div>
+        <div class="filter-tab" onclick="setFilter('meeting',this)">🔵 Meetings</div>
+        <div class="filter-tab" onclick="setFilter('action',this)">🟡 Action</div>
+        <div class="filter-tab" onclick="setFilter('newsletter',this)">🟣 Newsletter</div>
+        <div class="filter-tab" onclick="setFilter('fyi',this)">🟢 FYI</div>
+      </div>
+
+      <div class="email-list" id="emailList"></div>
+    </div>
+
+    <!-- DETAIL -->
+    <div class="detail-panel" id="detailPanel">
+      <div class="empty-state">
+        <div class="empty-icon">✉️</div>
+        <div>Select an email to view</div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <!-- CALENDAR -->
+      <div class="calendar-section">
+        <div class="cal-header">
+          <div class="cal-month" id="calMonth">March 2026</div>
+          <div class="cal-nav">
+            <div class="cal-nav-btn" onclick="changeMonth(-1)">‹</div>
+            <div class="cal-nav-btn" onclick="changeMonth(1)">›</div>
+          </div>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+
+      <!-- SELECTED DAY EVENTS -->
+      <div class="day-events" id="dayEvents">
+        <div class="day-events-title">📅 March 5 · Today</div>
+        <div class="day-event-item">
+          <div class="day-event-color" style="background:var(--meeting)"></div>
+          <span>Project Sync — Prof. Asante</span>
+          <span class="day-event-time">2:00 PM</span>
+        </div>
+        <div class="day-event-item">
+          <div class="day-event-color" style="background:var(--action)"></div>
+          <span>Submit MVP Draft</span>
+          <span class="day-event-time">5:00 PM</span>
+        </div>
+      </div>
+
+      <!-- ACTIVITY BAR -->
+      <div class="activity-section">
+        <div class="activity-header">
+          <div class="activity-title">Activity Feed</div>
+          <div class="activity-subtitle">Your recent events & email activity</div>
+        </div>
+        <div class="activity-list" id="activityList"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────
+const emails = [
+  {id:1,sender:"Prof. Asante",email:"prof.asante@ashesi.edu.gh",av:"PA",avColor:"linear-gradient(135deg,#00c6ff,#0072ff)",subject:"Project Sync — Reschedule to Today 2PM",summary:"Prof. Asante wants to reschedule your project sync to today at 2PM and needs confirmation of your availability before the call.",time:"10:32 AM",fullTime:"Today, March 5 · 10:32 AM",tags:["meeting","urgent"],unread:true,body:`<p>Hi Marinus,</p><p>I hope you're well. I'd like to reschedule our session to <strong>today at 2:00 PM</strong>. We'll go over MVP progress, blockers, and FDE II next steps.</p><p>Please confirm if this works. Looking forward to it!</p><p>Best,<br>Prof. Asante</p>`,actions:["Confirm 2PM availability","Review MVP progress before call","Prepare blockers list"]},
+  {id:2,sender:"GitHub",email:"noreply@github.com",av:"GH",avColor:"linear-gradient(135deg,#2d333b,#444c56)",subject:"Merge conflict detected: ds/main",summary:"A merge conflict is blocking your CI pipeline on the ds/main branch. You need to resolve it and push a fix.",time:"9:14 AM",fullTime:"Today, March 5 · 9:14 AM",tags:["action","urgent"],unread:true,body:`<p>Hi Marinus,</p><p>We detected a merge conflict in <strong>Marinus/ds</strong> on the <code>main</code> branch. This is blocking CI/CD.</p><p>Please resolve and push your changes.</p>`,actions:["Resolve merge conflict in ds/main","Push fix to trigger CI pipeline"]},
+  {id:3,sender:"Google Workspace",email:"workspace@google.com",av:"GW",avColor:"linear-gradient(135deg,#4285F4,#34A853)",subject:"Your storage is 85% full",summary:"Google Drive is at 85% capacity. Clean up old files or upgrade to avoid disruptions to Gmail and Drive.",time:"8:00 AM",fullTime:"Today, March 5 · 8:00 AM",tags:["action"],unread:false,body:`<p>Your Google Workspace storage is <strong>85% full</strong>. Please free up space or upgrade to avoid service disruptions.</p>`,actions:["Clear old Drive files","Consider storage upgrade"]},
+  {id:4,sender:"Ashesi University",email:"registrar@ashesi.edu.gh",av:"AU",avColor:"linear-gradient(135deg,#f59e0b,#ef4444)",subject:"Semester exam timetable now available",summary:"The final exam timetable is live. Log into the student portal to view your personal exam schedule.",time:"Yesterday",fullTime:"Wednesday, March 4 · 3:20 PM",tags:["fyi"],unread:false,body:`<p>Dear Student,</p><p>The final exam timetable is now available on the student portal. Log in to view your personalized schedule.</p><p>Good luck with your exams!</p>`,actions:[]},
+  {id:5,sender:"Vercel",email:"no-reply@vercel.com",av:"VC",avColor:"linear-gradient(135deg,#111,#555)",subject:"Deployment failed: ds-app production",summary:"Your latest deployment failed during the build stage. Check Vercel logs and push a fix to redeploy.",time:"Yesterday",fullTime:"Wednesday, March 4 · 11:05 AM",tags:["urgent","action"],unread:true,body:`<p>Your deployment <strong>ds-app (production)</strong> failed at the build stage during dependency install.</p><p>Review logs and push a fix to redeploy.</p>`,actions:["Review Vercel build logs","Fix error and redeploy"]},
+  {id:6,sender:"Dev Weekly",email:"newsletter@devweekly.io",av:"DW",avColor:"linear-gradient(135deg,#a78bfa,#7c3aed)",subject:"This week in AI: Gemini 2.0, Claude tools & more",summary:"Roundup of the biggest AI releases: Gemini 2.0 Flash speed improvements, new Claude tool use patterns, and RAG pipeline tutorials.",time:"Yesterday",fullTime:"Wednesday, March 4 · 8:00 AM",tags:["newsletter"],unread:false,body:`<p>Hey 👋 This week in dev: Gemini 2.0 Flash dropped, Anthropic released new tool use patterns, and there's a great new tutorial on RAG pipelines.</p>`,actions:[]},
+];
+
+const activities = [
+  {type:"meeting",icon:"📅",name:"Project Sync – Prof. Asante",desc:"Detected from email. Scheduled for today.",time:"2:00 PM today",badge:"meeting"},
+  {type:"urgent",icon:"⚠️",name:"Merge conflict on ds/main",desc:"CI pipeline blocked. Action required.",time:"9:14 AM",badge:"urgent"},
+  {type:"action",icon:"✅",name:"Submit MVP Draft",desc:"Deadline approaching — 5:00 PM today.",time:"Due today",badge:"action"},
+  {type:"email",icon:"📧",name:"Storage warning received",desc:"Google Workspace 85% full.",time:"8:00 AM",badge:"action"},
+  {type:"meeting",icon:"📅",name:"FDE II Lecture",desc:"Recurring class detected.",time:"Yesterday 10AM",badge:"meeting"},
+  {type:"action",icon:"📋",name:"Exam timetable released",desc:"Log in to student portal to check schedule.",time:"Yesterday",badge:"done"},
+  {type:"urgent",icon:"🚀",name:"Vercel deployment failed",desc:"ds-app production build error.",time:"Yesterday",badge:"urgent"},
+  {type:"email",icon:"📰",name:"Dev Weekly digest read",desc:"AI tools roundup for the week.",time:"Yesterday",badge:"done"},
+];
+
+// Calendar events map (day → type)
+const calEvents = {5:'meeting', 8:'meeting', 12:'urgent', 15:'meeting', 19:'meeting', 22:'action', 26:'meeting'};
+
+let currentFilter = 'all';
+let activeId = null;
+let calDate = new Date(2026, 2, 1); // March 2026
+let selectedDay = 5;
+
+// ─── RENDER EMAIL LIST ─────────────────────────────────
+function renderList() {
+  const filtered = currentFilter === 'all' ? emails : emails.filter(e => e.tags.includes(currentFilter));
+  document.getElementById('emailList').innerHTML = filtered.map((e,i) => `
+    <div class="email-card ${e.unread?'unread':''} ${activeId===e.id?'active':''}" onclick="openEmail(${e.id})" style="animation-delay:${i*0.05}s">
+      <div class="card-top">
+        <div class="sender-row">
+          <div class="sender-av" style="background:${e.avColor}">${e.av}</div>
+          <span class="email-sender">${e.sender}</span>
+          ${e.unread?'<div class="unread-dot"></div>':''}
+        </div>
+        <span class="email-time">${e.time}</span>
+      </div>
+      <div class="email-subject">${e.subject}</div>
+      <div class="email-snippet">${e.summary}</div>
+      <div class="card-tags">${e.tags.map(t=>`<span class="tag ${t}">${t}</span>`).join('')}</div>
+    </div>
+  `).join('');
+}
+
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active-tab'));
+  el.classList.add('active-tab');
+  activeId = null;
+  renderList();
+  document.getElementById('detailPanel').innerHTML = `<div class="empty-state"><div class="empty-icon">✉️</div><div>Select an email to view</div></div>`;
+}
+
+function openEmail(id) {
+  activeId = id;
+  renderList();
+  const e = emails.find(em=>em.id===id);
+  e.unread = false;
+  const actions = e.actions.length ? `
+    <div class="actions-box">
+      <div class="section-lbl">✦ Action Items</div>
+      ${e.actions.map(a=>`<div class="action-item"><div class="action-check" onclick="this.style.background='var(--fyi)';this.style.borderColor='var(--fyi)'"></div><span>${a}</span></div>`).join('')}
+    </div>` : '';
+  document.getElementById('detailPanel').innerHTML = `
+    <div class="detail-subject">${e.subject}</div>
+    <div class="detail-meta">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="d-sender-av" style="background:${e.avColor}">${e.av}</div>
+        <div><div class="d-name">${e.sender}</div><div class="d-email">${e.email}</div></div>
+      </div>
+      <div class="d-time">${e.fullTime}</div>
+    </div>
+    <div class="detail-tags">${e.tags.map(t=>`<span class="tag ${t}">${t}</span>`).join('')}</div>
+    <div class="ai-box">
+      <div class="ai-label">✦ AI Summary</div>
+      <div class="ai-text">${e.summary}</div>
+    </div>
+    ${actions}
+    <div class="section-lbl" style="margin-bottom:10px">Original Email</div>
+    <div class="email-body">${e.body}</div>
+    <div class="reply-bar">
+      <input type="text" placeholder="Reply to ${e.sender}…"/>
+      <button class="reply-send">➤</button>
+    </div>`;
+}
+
+// ─── CALENDAR ─────────────────────────────────────────
+function renderCalendar() {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonth').textContent = `${months[calDate.getMonth()]} ${calDate.getFullYear()}`;
+  const grid = document.getElementById('calGrid');
+  const days = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const firstDay = new Date(calDate.getFullYear(), calDate.getMonth(), 1).getDay();
+  const daysInMonth = new Date(calDate.getFullYear(), calDate.getMonth()+1, 0).getDate();
+  const daysInPrev = new Date(calDate.getFullYear(), calDate.getMonth(), 0).getDate();
+  const today = new Date();
+  const isCurrentMonth = calDate.getFullYear()===today.getFullYear() && calDate.getMonth()===today.getMonth();
+
+  let html = days.map(d=>`<div class="cal-day-label">${d}</div>`).join('');
+  for(let i=0;i<firstDay;i++) {
+    html += `<div class="cal-day other-month">${daysInPrev-firstDay+i+1}</div>`;
+  }
+  for(let d=1;d<=daysInMonth;d++) {
+    const isToday = isCurrentMonth && d===today.getDate();
+    const isSel = d===selectedDay && isCurrentMonth;
+    const evt = calEvents[d];
+    html += `<div class="cal-day ${isToday&&!isSel?'today':''} ${isSel?'selected':''} ${evt&&!isSel?'has-event':''}${evt==='urgent'&&!isSel?' has-urgent':''}" onclick="selectDay(${d})">${d}</div>`;
+  }
+  let rem = 42-(firstDay+daysInMonth);
+  for(let i=1;i<=rem;i++) html+=`<div class="cal-day other-month">${i}</div>`;
+  grid.innerHTML = html;
+}
+
+function changeMonth(dir) {
+  calDate = new Date(calDate.getFullYear(), calDate.getMonth()+dir, 1);
+  selectedDay = null;
+  renderCalendar();
+  document.getElementById('dayEvents').innerHTML = `<div class="day-events-title">No events selected</div>`;
+}
+
+const dayEventsData = {
+  5:[{color:'var(--meeting)',name:'Project Sync — Prof. Asante',time:'2:00 PM'},{color:'var(--action)',name:'Submit MVP Draft',time:'5:00 PM'}],
+  8:[{color:'var(--meeting)',name:'FDE II Lecture',time:'10:00 AM'}],
+  12:[{color:'var(--urgent)',name:'Assignment Deadline',time:'11:59 PM'}],
+  15:[{color:'var(--meeting)',name:'Team Sprint Review',time:'3:00 PM'}],
+  19:[{color:'var(--meeting)',name:'Office Hours — Prof. Asante',time:'1:00 PM'}],
+  22:[{color:'var(--action)',name:'Project Report Due',time:'5:00 PM'}],
+  26:[{color:'var(--meeting)',name:'Final Presentation Prep',time:'11:00 AM'}],
+};
+
+const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function selectDay(d) {
+  selectedDay = d;
+  renderCalendar();
+  const m = calDate.getMonth(); const y = calDate.getFullYear();
+  const label = `${months[m]} ${d}, ${y}`;
+  const evts = dayEventsData[d] || [];
+  const de = document.getElementById('dayEvents');
+  if(!evts.length) {
+    de.innerHTML = `<div class="day-events-title">📅 ${label}</div><div style="font-size:0.75rem;color:var(--muted);padding:4px 0">No events this day</div>`;
+    return;
+  }
+  de.innerHTML = `<div class="day-events-title">📅 ${label}</div>`+evts.map(ev=>`
+    <div class="day-event-item">
+      <div class="day-event-color" style="background:${ev.color}"></div>
+      <span>${ev.name}</span>
+      <span class="day-event-time">${ev.time}</span>
+    </div>`).join('');
+}
+
+// ─── ACTIVITY ─────────────────────────────────────────
+function renderActivity() {
+  document.getElementById('activityList').innerHTML = activities.map((a,i)=>`
+    <div class="activity-item" style="animation-delay:${i*0.06}s">
+      <div class="activity-dot ${a.type}">${a.icon}</div>
+      <div class="activity-info">
+        <div class="activity-name">${a.name}</div>
+        <div class="activity-desc">${a.desc}</div>
+        <span class="activity-badge ${a.badge}">${a.badge}</span>
+      </div>
+      <div class="activity-time">${a.time}</div>
+    </div>`).join('');
+}
+
+// ─── INIT ──────────────────────────────────────────────
+renderList();
+renderCalendar();
+renderActivity();
+</script>
+</body>
+</html>

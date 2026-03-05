@@ -1,0 +1,35 @@
+# Secrets — never commit
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Database
+*.db
+*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Google credentials (contains client secret)
+client_secret_*.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Build / dist
+dist/
+build/
+*.egg-info/

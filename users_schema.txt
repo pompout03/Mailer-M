@@ -1,0 +1,6 @@
+(0, 'id', 'VARCHAR', 1, None, 1)
+(1, 'email', 'VARCHAR', 1, None, 0)
+(2, 'name', 'VARCHAR', 0, None, 0)
+(3, 'google_access_token', 'VARCHAR', 0, None, 0)
+(4, 'google_refresh_token', 'VARCHAR', 0, None, 0)
+(5, 'picture', 'VARCHAR', 0, None, 0)

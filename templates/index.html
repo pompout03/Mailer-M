@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MailMind – AI Email Assistant</title>
+    <meta name="description"
+        content="MailMind: AI-powered Gmail assistant with smart categorization, summaries, and meeting detection." />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+        rel="stylesheet" />
+    <style>
+        :root {
+            --bg: #0a0b0f;
+            --surface: #111318;
+            --surface2: #181c25;
+            --surface3: #1e2330;
+            --border: #1f2433;
+            --border2: #2a3048;
+            --text: #e8eaf2;
+            --muted: #5a6282;
+            --muted2: #8892b0;
+            --urgent: #ff4d6d;
+            --meeting: #00c6ff;
+            --newsletter: #a78bfa;
+            --action: #f59e0b;
+            --fyi: #34d399;
+            --urgent-bg: rgba(255, 77, 109, 0.1);
+            --meeting-bg: rgba(0, 198, 255, 0.1);
+            --newsletter-bg: rgba(167, 139, 250, 0.1);
+            --action-bg: rgba(245, 158, 11, 0.1);
+            --fyi-bg: rgba(52, 211, 153, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            font-size: 14px;
+        }
+
+        /* SIDEBAR NAV */
+        .sidenav {
+            width: 52px;
+            min-width: 52px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px 0;
+            gap: 4px;
+            z-index: 10;
+        }
+
+        .sidenav-logo {
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(135deg, var(--meeting), #7c3aed);
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            margin-bottom: 16px;
+            cursor: pointer;
+        }
+
+        .sidenav-item {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.15s;
+            position: relative;
+            color: var(--muted);
+        }
+
+        .sidenav-item:hover {
+            background: var(--surface2);
+            color: var(--text);
+        }
+
+        .sidenav-item.active {
+            background: var(--meeting-bg);
+            color: var(--meeting);
+        }
+
+        .sidenav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 20%;
+            height: 60%;
+            width: 3px;
+            background: var(--meeting);
+            border-radius: 0 2px 2px 0;
+        }
+
+        .sidenav-badge {
+            position: absolute;
+            top: -3px;
+            right: -3px;
+            width: 16px;
+            height: 16px;
+            background: var(--urgent);
+            border-radius: 50%;
+            font-size: 0.58rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            border: 2px solid var(--surface);
+        }
+
+        .sidenav-bottom {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .avatar-sm {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00c6ff, #a78bfa);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .avatar-sm img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* MAIN LAYOUT */
+        .app {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* TOPBAR */
+        .topbar {
+            height: 54px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 14px;
+            background: var(--surface);
+            flex-shrink: 0;
+        }
+
+        .topbar-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 1rem;
+            letter-spacing: -0.3px;
+            white-space: nowrap;
+        }
+
+        .search-bar {
+            flex: 1;
+            max-width: 340px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            padding: 0 11px;
+            gap: 7px;
+            height: 34px;
+            transition: border-color 0.2s;
+        }
+
+        .search-bar:focus-within {
+            border-color: var(--meeting);
+        }
+
+        .search-bar input {
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.83rem;
+            flex: 1;
+        }
+
+        .search-bar input::placeholder {
+            color: var(--muted);
+        }
+
+        .topbar-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 7px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 6px 13px;
+            border-radius: 7px;
+            border: none;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--muted2);
+            border: 1px solid var(--border);
+        }
+
+        .btn-ghost:hover {
+            background: var(--surface2);
+            color: var(--text);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--meeting), #0072ff);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.85;
+            transform: translateY(-1px);
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.85rem;
+            position: relative;
+            transition: all 0.15s;
+        }
+
+        .icon-btn:hover {
+            background: var(--border);
+        }
+
+        .notif-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 7px;
+            height: 7px;
+            background: var(--urgent);
+            border-radius: 50%;
+            border: 2px solid var(--surface);
+        }
+
+        /* PANELS WRAPPER */
+        .panels {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* LEFT PANEL - email list */
+        .email-panel {
+            width: 310px;
+            min-width: 310px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .meeting-banner {
+            background: linear-gradient(90deg, rgba(0, 198, 255, 0.1), rgba(0, 198, 255, 0.03));
+            border-bottom: 1px solid rgba(0, 198, 255, 0.18);
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+            animation: pulseBorder 2.5s infinite;
+        }
+
+        @keyframes pulseBorder {
+
+            0%,
+            100% {
+                border-bottom-color: rgba(0, 198, 255, 0.18);
+            }
+
+            50% {
+                border-bottom-color: rgba(0, 198, 255, 0.45);
+            }
+        }
+
+        .banner-dot {
+            width: 7px;
+            height: 7px;
+            background: var(--meeting);
+            border-radius: 50%;
+            flex-shrink: 0;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .banner-text {
+            flex: 1;
+            font-size: 0.75rem;
+            line-height: 1.35;
+        }
+
+        .banner-text strong {
+            color: var(--meeting);
+        }
+
+        .banner-time {
+            color: var(--muted);
+            font-size: 0.7rem;
+        }
+
+        .banner-close {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 0.85rem;
+            padding: 0 2px;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 2px;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            flex-shrink: 0;
+        }
+
+        .filter-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-tab {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            border: 1px solid transparent;
+            transition: all 0.15s;
+            color: var(--muted);
+        }
+
+        .filter-tab:hover {
+            color: var(--text);
+        }
+
+        .filter-tab.active-tab {
+            color: var(--meeting);
+            background: var(--meeting-bg);
+            border-color: rgba(0, 198, 255, 0.25);
+        }
+
+        .email-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .email-list::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .email-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .email-card {
+            padding: 13px 14px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.12s;
+            position: relative;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .email-card:hover {
+            background: var(--surface);
+        }
+
+        .email-card.active {
+            background: var(--surface2);
+        }
+
+        .email-card.active::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--meeting);
+        }
+
+        .card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .sender-row {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .sender-av {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.62rem;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            flex-shrink: 0;
+        }
+
+        .email-sender {
+            font-size: 0.82rem;
+            font-weight: 500;
+        }
+
+        .email-card.unread .email-sender {
+            font-weight: 700;
+        }
+
+        .email-time {
+            font-size: 0.7rem;
+            color: var(--muted);
+            flex-shrink: 0;
+        }
+
+        .email-subject {
+            font-size: 0.79rem;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 3px;
+        }
+
+        .email-snippet {
+            font-size: 0.74rem;
+            color: var(--muted);
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+        }
+
+        .card-tags {
+            display: flex;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        .tag {
+            font-size: 0.62rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            padding: 1px 6px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+
+        .tag.urgent {
+            background: var(--urgent-bg);
+            color: var(--urgent);
+        }
+
+        .tag.meeting {
+            background: var(--meeting-bg);
+            color: var(--meeting);
+        }
+
+        .tag.newsletter {
+            background: var(--newsletter-bg);
+            color: var(--newsletter);
+        }
+
+        .tag.action {
+            background: var(--action-bg);
+            color: var(--action);
+        }
+
+        .tag.fyi {
+            background: var(--fyi-bg);
+            color: var(--fyi);
+        }
+
+        .unread-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--meeting);
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* CENTER - detail */
+        .detail-panel {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 26px;
+            border-right: 1px solid var(--border);
+        }
+
+        .detail-panel::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .detail-panel::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .detail-subject {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 1.2rem;
+            line-height: 1.3;
+            margin-bottom: 10px;
+        }
+
+        .detail-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .d-sender-av {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.72rem;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            flex-shrink: 0;
+        }
+
+        .d-name {
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .d-email {
+            font-size: 0.72rem;
+            color: var(--muted);
+        }
+
+        .d-time {
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-left: auto;
+        }
+
+        .detail-tags {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 16px;
+        }
+
+        .ai-box {
+            background: linear-gradient(135deg, rgba(0, 198, 255, 0.07), rgba(167, 139, 250, 0.06));
+            border: 1px solid rgba(0, 198, 255, 0.18);
+            border-radius: 11px;
+            padding: 15px 17px;
+            margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--meeting), var(--newsletter));
+        }
+
+        .ai-label {
+            font-size: 0.63rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--meeting);
+            margin-bottom: 6px;
+        }
+
+        .ai-text {
+            font-size: 0.83rem;
+            line-height: 1.6;
+            color: #c4cce8;
+        }
+
+        .actions-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+        }
+
+        .section-lbl {
+            font-size: 0.62rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .action-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            padding: 7px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.81rem;
+            line-height: 1.4;
+        }
+
+        .action-item:last-child {
+            border-bottom: none;
+        }
+
+        .action-check {
+            width: 15px;
+            height: 15px;
+            border: 1.5px solid var(--action);
+            border-radius: 4px;
+            flex-shrink: 0;
+            margin-top: 2px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .action-check:hover {
+            background: var(--action-bg);
+        }
+
+        .action-check.done {
+            background: var(--fyi);
+            border-color: var(--fyi);
+        }
+
+        .email-body {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            padding: 18px;
+            font-size: 0.83rem;
+            line-height: 1.75;
+            color: #aab4d0;
+            margin-bottom: 16px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .reply-bar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: border-color 0.2s;
+        }
+
+        .reply-bar:focus-within {
+            border-color: var(--meeting);
+        }
+
+        .reply-bar input {
+            flex: 1;
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.83rem;
+        }
+
+        .reply-bar input::placeholder {
+            color: var(--muted);
+        }
+
+        .reply-send {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, var(--meeting), #0072ff);
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+
+        .reply-send:hover {
+            opacity: 0.8;
+            transform: scale(1.05);
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--muted);
+            gap: 10px;
+            font-size: 0.88rem;
+        }
+
+        .empty-icon {
+            font-size: 2.5rem;
+            opacity: 0.25;
+        }
+
+        /* Skeleton loader */
+        @keyframes shimmer {
+            0% {
+                background-position: -400px 0;
+            }
+
+            100% {
+                background-position: 400px 0;
+            }
+        }
+
+        .skeleton-card {
+            padding: 13px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .skel {
+            background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+            background-size: 800px 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: 4px;
+            height: 12px;
+            margin-bottom: 7px;
+        }
+
+        .skel.w30 {
+            width: 30%;
+        }
+
+        .skel.w50 {
+            width: 50%;
+        }
+
+        .skel.w70 {
+            width: 70%;
+        }
+
+        .skel.w90 {
+            width: 90%;
+        }
+
+        /* RIGHT PANEL */
+        .right-panel {
+            width: 290px;
+            min-width: 290px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--surface);
+        }
+
+        /* CALENDAR */
+        .calendar-section {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .cal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .cal-month {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 0.88rem;
+        }
+
+        .cal-nav {
+            display: flex;
+            gap: 4px;
+        }
+
+        .cal-nav-btn {
+            width: 24px;
+            height: 24px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: var(--muted2);
+            transition: all 0.15s;
+        }
+
+        .cal-nav-btn:hover {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+        }
+
+        .cal-day-label {
+            text-align: center;
+            font-size: 0.62rem;
+            font-weight: 600;
+            color: var(--muted);
+            padding: 3px 0;
+            letter-spacing: 0.04em;
+        }
+
+        .cal-day {
+            text-align: center;
+            font-size: 0.75rem;
+            padding: 5px 2px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+            color: var(--muted2);
+            position: relative;
+        }
+
+        .cal-day:hover {
+            background: var(--surface2);
+            color: var(--text);
+        }
+
+        .cal-day.today {
+            background: var(--meeting-bg);
+            color: var(--meeting);
+            font-weight: 700;
+        }
+
+        .cal-day.has-event::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--meeting);
+        }
+
+        .cal-day.has-urgent::after {
+            background: var(--urgent);
+        }
+
+        .cal-day.other-month {
+            color: var(--border2);
+            pointer-events: none;
+        }
+
+        .cal-day.selected {
+            background: var(--meeting);
+            color: white;
+            font-weight: 700;
+        }
+
+        .cal-day.selected::after {
+            display: none;
+        }
+
+        /* ACTIVITY BAR */
+        .activity-section {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .activity-section::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .activity-section::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .activity-header {
+            padding: 14px 16px 10px;
+            position: sticky;
+            top: 0;
+            background: var(--surface);
+            z-index: 2;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .activity-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-bottom: 2px;
+        }
+
+        .activity-subtitle {
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+
+        .activity-list {
+            padding: 10px 14px;
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+            position: relative;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        .activity-item:not(:last-child)::before {
+            content: '';
+            position: absolute;
+            left: 14px;
+            top: 30px;
+            bottom: -14px;
+            width: 1px;
+            background: var(--border);
+        }
+
+        .activity-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+            border: 2px solid var(--bg);
+        }
+
+        .activity-dot.meeting {
+            background: var(--meeting-bg);
+            border-color: rgba(0, 198, 255, 0.3);
+        }
+
+        .activity-dot.email {
+            background: var(--newsletter-bg);
+            border-color: rgba(167, 139, 250, 0.3);
+        }
+
+        .activity-dot.action {
+            background: var(--action-bg);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .activity-dot.urgent {
+            background: var(--urgent-bg);
+            border-color: rgba(255, 77, 109, 0.3);
+        }
+
+        .activity-dot.fyi {
+            background: var(--fyi-bg);
+            border-color: rgba(52, 211, 153, 0.3);
+        }
+
+        .activity-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .activity-name {
+            font-size: 0.8rem;
+            font-weight: 500;
+            line-height: 1.3;
+            margin-bottom: 2px;
+        }
+
+        .activity-desc {
+            font-size: 0.72rem;
+            color: var(--muted);
+            line-height: 1.35;
+        }
+
+        .activity-time {
+            font-size: 0.68rem;
+            color: var(--muted);
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .activity-badge {
+            display: inline-block;
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .activity-badge.meeting {
+            background: var(--meeting-bg);
+            color: var(--meeting);
+        }
+
+        .activity-badge.urgent {
+            background: var(--urgent-bg);
+            color: var(--urgent);
+        }
+
+        .activity-badge.action {
+            background: var(--action-bg);
+            color: var(--action);
+        }
+
+        .activity-badge.done,
+        .activity-badge.fyi,
+        .activity-badge.newsletter {
+            background: var(--fyi-bg);
+            color: var(--fyi);
+        }
+
+        /* DAY EVENTS POPUP */
+        .day-events {
+            padding: 10px 14px;
+            border-top: 1px solid var(--border);
+            background: var(--surface2);
+            flex-shrink: 0;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .day-events-title {
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 7px;
+        }
+
+        .day-event-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 8px;
+            border-radius: 7px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            margin-bottom: 5px;
+            font-size: 0.76rem;
+        }
+
+        .day-event-color {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .day-event-time {
+            color: var(--muted);
+            font-size: 0.68rem;
+            margin-left: auto;
+            white-space: nowrap;
+        }
+
+        /* Sync spinning */
+        .spinning {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Toast */
+        #toastEl {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        #toastEl.show {
+            opacity: 1;
+        }
+
+        #toastEl.success {
+            background: var(--surface2);
+            border: 1px solid var(--fyi);
+            color: var(--fyi);
+        }
+
+        #toastEl.error {
+            background: var(--surface2);
+            border: 1px solid var(--urgent);
+            color: var(--urgent);
+        }
+
+        #toastEl.info {
+            background: var(--surface2);
+            border: 1px solid var(--meeting);
+            color: var(--meeting);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ICON NAV -->
+    <nav class="sidenav">
+        <div class="sidenav-logo" title="MailMind">✦</div>
+        <div class="sidenav-item active" title="Inbox" id="nav-inbox">📥</div>
+        <div class="sidenav-item" title="Calendar">📅</div>
+        <div class="sidenav-item" title="Activity">📊</div>
+        <div class="sidenav-item" title="Settings">⚙️</div>
+        <div class="sidenav-bottom">
+            <a href="/logout" title="Sign out">
+                <div class="avatar-sm" id="userAvatar">
+                    {% if user.picture %}
+                    <img src="{{ user.picture }}" alt="{{ user.name }}" />
+                    {% else %}
+                    {{ user.name[0].upper() if user.name else '?' }}
+                    {% endif %}
+                </div>
+            </a>
+        </div>
+    </nav>
+
+    <!-- APP -->
+    <div class="app">
+
+        <!-- TOPBAR -->
+        <div class="topbar">
+            <div class="topbar-title">MailMind</div>
+            <div class="search-bar">
+                <span style="color:var(--muted);font-size:0.85rem">🔍</span>
+                <input type="text" id="searchInput" placeholder="Search emails…" oninput="filterBySearch(this.value)" />
+            </div>
+            <div class="topbar-actions">
+                <button class="btn btn-ghost" id="syncBtn" onclick="syncEmails()">↻ Sync</button>
+                <button class="btn btn-primary" onclick="syncEmails()">✦ Refresh</button>
+                <div class="icon-btn" title="Unread count">
+                    🔔<div class="notif-dot" id="notifDot" style="display:none"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANELS -->
+        <div class="panels">
+
+            <!-- EMAIL LIST -->
+            <div class="email-panel">
+                <div class="meeting-banner" id="meetingBanner" style="display:none">
+                    <div class="banner-dot"></div>
+                    <div class="banner-text" id="bannerText">
+                        <strong>Loading…</strong>
+                    </div>
+                    <button class="banner-close"
+                        onclick="document.getElementById('meetingBanner').style.display='none'">✕</button>
+                </div>
+
+                <div class="filter-tabs" id="filterTabs">
+                    <div class="filter-tab active-tab" onclick="setFilter('all',this)">All</div>
+                    <div class="filter-tab" onclick="setFilter('urgent',this)">🔴 Urgent</div>
+                    <div class="filter-tab" onclick="setFilter('meeting',this)">🔵 Meetings</div>
+                    <div class="filter-tab" onclick="setFilter('action',this)">🟡 Action</div>
+                    <div class="filter-tab" onclick="setFilter('newsletter',this)">🟣 Newsletter</div>
+                    <div class="filter-tab" onclick="setFilter('fyi',this)">🟢 FYI</div>
+                </div>
+
+                <div class="email-list" id="emailList"></div>
+            </div>
+
+            <!-- DETAIL -->
+            <div class="detail-panel" id="detailPanel">
+                <div class="empty-state">
+                    <div class="empty-icon">✉️</div>
+                    <div>Select an email to view</div>
+                    <div style="font-size:0.76rem;color:var(--muted);margin-top:4px">Emails will load automatically
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL -->
+            <div class="right-panel">
+                <!-- CALENDAR -->
+                <div class="calendar-section">
+                    <div class="cal-header">
+                        <div class="cal-month" id="calMonth"></div>
+                        <div class="cal-nav">
+                            <div class="cal-nav-btn" onclick="changeMonth(-1)">&#8249;</div>
+                            <div class="cal-nav-btn" onclick="changeMonth(1)">&#8250;</div>
+                        </div>
+                    </div>
+                    <div class="cal-grid" id="calGrid"></div>
+                </div>
+
+                <!-- SELECTED DAY EVENTS -->
+                <div class="day-events" id="dayEvents">
+                    <div class="day-events-title">Select a day to see events</div>
+                </div>
+
+                <!-- ACTIVITY BAR -->
+                <div class="activity-section">
+                    <div class="activity-header">
+                        <div class="activity-title">Activity Feed</div>
+                        <div class="activity-subtitle">Recent emails &amp; meetings</div>
+                    </div>
+                    <div class="activity-list" id="activityList"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toastEl"></div>
+
+    <script>
+        'use strict';
+
+        // ─── STATE ────────────────────────────────────────────────────────────────
+        let allEmails = [];       // full list from API
+        let displayEmails = [];   // after filter
+        let activeFilter = 'all';
+        let searchQuery = '';
+        let activeEmailId = null;
+        let allMeetings = [];
+
+        // Calendar state
+        let calDate = new Date();
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        let selectedDay = new Date().getDate();
+        let calEventDays = {};    // day -> type  e.g. {5:'meeting', 12:'urgent'}
+
+        // ─── UTILITIES ─────────────────────────────────────────────────────────────
+        function esc(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function relativeTime(isoStr) {
+            if (!isoStr) return '';
+            const d = new Date(isoStr);
+            if (isNaN(d)) return isoStr;
+            const diff = Date.now() - d;
+            if (diff < 3600000) return Math.max(1, Math.floor(diff / 60000)) + 'm ago';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+            if (diff < 172800000) return 'Yesterday';
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        const AVATAR_COLORS = ['linear-gradient(135deg,#00c6ff,#0072ff)', 'linear-gradient(135deg,#ff4d6d,#c0392b)', 'linear-gradient(135deg,#a78bfa,#7c3aed)', 'linear-gradient(135deg,#f59e0b,#ef4444)', 'linear-gradient(135deg,#34d399,#0891b2)', 'linear-gradient(135deg,#fb923c,#f59e0b)'];
+        function avatarGradient(name) {
+            let h = 0; for (let c of (name || '')) h = (h * 31 + c.charCodeAt(0)) % AVATAR_COLORS.length;
+            return AVATAR_COLORS[h];
+        }
+        function initials(name, email) {
+            if (name) { const p = name.trim().split(/\s+/); return (p[0][0] + (p[1] ? p[1][0] : '')).toUpperCase(); }
+            if (email) return email[0].toUpperCase();
+            return '?';
+        }
+
+        // ─── TOAST ─────────────────────────────────────────────────────────────────
+        let toastTimer;
+        function toast(msg, type = 'info') {
+            const el = document.getElementById('toastEl');
+            el.textContent = msg; el.className = 'show ' + type;
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => el.className = '', 3200);
+        }
+
+        // ─── API ───────────────────────────────────────────────────────────────────
+        async function api(url, opts = {}) {
+            const r = await fetch(url, { credentials: 'same-origin', ...opts });
+            if (r.status === 401) { window.location.href = '/login_page'; return null; }
+            if (!r.ok) { const e = await r.json().catch(() => ({ detail: r.statusText })); throw new Error(e.detail || 'Error'); }
+            return r.json();
+        }
+
+        // ─── RENDER EMAIL LIST ─────────────────────────────────────────────────────
+        function renderSkeletons() {
+            const html = Array.from({ length: 4 }, () => `
+    <div class="skeleton-card">
+      <div class="skel w30" style="margin-bottom:8px"></div>
+      <div class="skel w70" style="margin-bottom:6px"></div>
+      <div class="skel w50"></div>
+    </div>`).join('');
+            document.getElementById('emailList').innerHTML = html;
+        }
+
+        function applyFilters() {
+            let list = allEmails;
+            if (activeFilter !== 'all') list = list.filter(e => (e.category || 'fyi').toLowerCase() === activeFilter);
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                list = list.filter(e => (e.subject || '').toLowerCase().includes(q) || (e.sender_name || '').toLowerCase().includes(q) || (e.summary || '').toLowerCase().includes(q));
+            }
+            displayEmails = list;
+            renderList();
+        }
+
+        function renderList() {
+            const el = document.getElementById('emailList');
+            if (!displayEmails.length) {
+                el.innerHTML = `<div class="empty-state" style="padding:40px 20px;height:auto">
+      <div class="empty-icon">📭</div>
+      <div>${allEmails.length ? 'No emails match this filter.' : 'No emails yet — click Sync.'}</div>
+      ${!allEmails.length ? '<button class="btn btn-ghost" onclick="syncEmails()" style="margin-top:8px">↻ Sync Now</button>' : ''}
+    </div>`;
+                return;
+            }
+            el.innerHTML = displayEmails.map((e, i) => {
+                const cat = (e.category || 'fyi').toLowerCase();
+                const av = initials(e.sender_name, e.sender_email);
+                const color = avatarGradient(e.sender_name || e.sender_email || '');
+                const tags = [cat];
+                if (e.meeting_detected) tags.push('meeting');
+                return `<div class="email-card ${!e.is_read ? 'unread' : ''} ${activeEmailId === e.id ? 'active' : ''}"
+      onclick="openEmail('${e.id}')" style="animation-delay:${i * 0.04}s">
+      <div class="card-top">
+        <div class="sender-row">
+          <div class="sender-av" style="background:${color}">${av}</div>
+          <span class="email-sender">${esc(e.sender_name || e.sender_email || 'Unknown')}</span>
+          ${!e.is_read ? '<div class="unread-dot"></div>' : ''}
+        </div>
+        <span class="email-time">${relativeTime(e.created_at || e.date_str)}</span>
+      </div>
+      <div class="email-subject">${esc(e.subject || '(No Subject)')}</div>
+      <div class="email-snippet">${esc(e.summary || e.snippet || '')}</div>
+      <div class="card-tags">${tags.map(t => `<span class="tag ${t}">${t}</span>`).join('')}${(e.action_items || []).length ? `<span class="tag action">+${e.action_items.length} tasks</span>` : ''}</div>
+    </div>`;
+            }).join('');
+        }
+
+        function setFilter(f, el) {
+            activeFilter = f;
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active-tab'));
+            el.classList.add('active-tab');
+            applyFilters();
+        }
+
+        function filterBySearch(q) {
+            searchQuery = q;
+            applyFilters();
+        }
+
+        // ─── LOAD EMAILS ───────────────────────────────────────────────────────────
+        async function loadEmails() {
+            renderSkeletons();
+            try {
+                const data = await api('/api/emails');
+                if (!data) return;
+                allEmails = data;
+                applyFilters();
+                updateUnreadBadge();
+            } catch (e) {
+                document.getElementById('emailList').innerHTML =
+                    `<div class="empty-state" style="padding:40px;height:auto"><div class="empty-icon">⚠️</div><div>${esc(e.message)}</div></div>`;
+            }
+        }
+
+        function updateUnreadBadge() {
+            const unread = allEmails.filter(e => !e.is_read).length;
+            const dot = document.getElementById('notifDot');
+            if (dot) dot.style.display = unread ? '' : 'none';
+        }
+
+        // ─── SYNC ──────────────────────────────────────────────────────────────────
+        async function syncEmails() {
+            const btn = document.getElementById('syncBtn');
+            if (btn) { btn.classList.add('spinning'); btn.disabled = true; }
+            toast('Syncing emails from Gmail…', 'info');
+            try {
+                const res = await api('/api/emails/sync', { method: 'POST' });
+                if (!res) return;
+                toast(res.message, 'success');
+                await Promise.all([loadEmails(), loadTodayMeetings(), loadAllMeetings(), loadActivity()]);
+            } catch (e) {
+                toast('Sync failed: ' + e.message, 'error');
+            } finally {
+                if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+            }
+        }
+
+        // ─── OPEN EMAIL DETAIL ─────────────────────────────────────────────────────
+        async function openEmail(id) {
+            activeEmailId = id;
+            renderList();
+            // Show loading skeleton in detail pane
+            document.getElementById('detailPanel').innerHTML = `
+    <div class="empty-state"><div class="empty-icon" style="animation:spin 1s linear infinite">↻</div><div>Loading…</div></div>`;
+            try {
+                const e = await api('/api/emails/' + id);
+                if (!e) return;
+                // Sync into allEmails
+                const idx = allEmails.findIndex(x => x.id === id);
+                if (idx !== -1) { allEmails[idx] = e; allEmails[idx].is_read = true; }
+                updateUnreadBadge();
+                renderList();
+                renderDetail(e);
+            } catch (err) {
+                document.getElementById('detailPanel').innerHTML =
+                    `<div class="empty-state"><div class="empty-icon">⚠️</div><div>${esc(err.message)}</div></div>`;
+            }
+        }
+
+        function renderDetail(e) {
+            const cat = (e.category || 'fyi').toLowerCase();
+            const av = initials(e.sender_name, e.sender_email);
+            const color = avatarGradient(e.sender_name || e.sender_email || '');
+            const items = e.action_items || [];
+            const timeStr = e.date_str || (e.created_at ? new Date(e.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '');
+            const tags = [cat];
+            if (e.meeting_detected) tags.push('meeting');
+
+            const actionsHtml = items.length ? `
+    <div class="actions-box">
+      <div class="section-lbl">✦ Action Items</div>
+      ${items.map((a, i) => `<div class="action-item">
+        <div class="action-check" id="chk${i}" onclick="toggleCheck(${i})"></div>
+        <span>${esc(a)}</span>
+      </div>`).join('')}
+    </div>` : '';
+
+            const meetingHtml = e.meeting_detected ? `
+    <div class="ai-box" style="margin-bottom:16px">
+      <div class="ai-label">📅 Meeting Detected</div>
+      <div class="ai-text"><strong>${esc(e.meeting_title || 'Meeting')}</strong>${e.meeting_date ? ' · ' + esc(e.meeting_date) : ''}${e.meeting_time ? ' at ' + esc(e.meeting_time) : ''}</div>
+    </div>` : '';
+
+            document.getElementById('detailPanel').innerHTML = `
+    <div class="detail-subject">${esc(e.subject || '(No Subject)')}</div>
+    <div class="detail-meta">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="d-sender-av" style="background:${color}">${av}</div>
+        <div><div class="d-name">${esc(e.sender_name || e.sender_email || 'Unknown')}</div>
+        <div class="d-email">${esc(e.sender_email || '')}</div></div>
+      </div>
+      <div class="d-time">${esc(timeStr)}</div>
+    </div>
+    <div class="detail-tags">${tags.map(t => `<span class="tag ${t}">${t}</span>`).join('')}</div>
+    <div class="ai-box">
+      <div class="ai-label">✦ AI Summary</div>
+      <div class="ai-text">${esc(e.summary || 'No summary available.')}</div>
+    </div>
+    ${meetingHtml}
+    ${actionsHtml}
+    <div class="section-lbl" style="margin-bottom:10px">Original Email</div>
+    <div class="email-body">${esc(e.body || e.snippet || '(No content)')}</div>
+    <div class="reply-bar">
+      <input type="text" placeholder="Reply to ${esc(e.sender_name || 'sender')}…" id="replyInput"/>
+      <button class="reply-send" onclick="sendReply()">&#10148;</button>
+    </div>`;
+        }
+
+        function toggleCheck(i) {
+            const el = document.getElementById('chk' + i);
+            if (el) el.classList.toggle('done');
+        }
+        function sendReply() {
+            const inp = document.getElementById('replyInput');
+            if (inp && inp.value.trim()) { toast('Reply queued (send not yet wired)', 'info'); inp.value = ''; }
+        }
+
+        // ─── MEETING BANNER ────────────────────────────────────────────────────────
+        async function loadTodayMeetings() {
+            try {
+                const data = await api('/api/meetings/today');
+                if (!data || !data.length) { document.getElementById('meetingBanner').style.display = 'none'; return; }
+                const m = data[0];
+                document.getElementById('bannerText').innerHTML =
+                    `<strong>Today: ${esc(m.title)}</strong>${m.time ? ` &mdash; ${esc(m.time)}` : ''}
+       ${m.source_email_subject ? `<div class="banner-time">From: ${esc(m.source_email_subject)}</div>` : ''}`;
+                document.getElementById('meetingBanner').style.display = 'flex';
+            } catch (e) { /* silent */ }
+        }
+
+        // ─── MEETINGS + CALENDAR ───────────────────────────────────────────────────
+        async function loadAllMeetings() {
+            try {
+                const data = await api('/api/meetings');
+                if (!data) return;
+                allMeetings = data;
+                // Build calEventDays from meeting dates
+                calEventDays = {};
+                data.forEach(m => {
+                    if (!m.date) return;
+                    const d = new Date(m.date);
+                    if (d.getFullYear() === calDate.getFullYear() && d.getMonth() === calDate.getMonth()) {
+                        calEventDays[d.getDate()] = 'meeting';
+                    }
+                });
+                renderCalendar();
+            } catch (e) { /* silent */ }
+        }
+
+        function renderCalendar() {
+            document.getElementById('calMonth').textContent = `${months[calDate.getMonth()]} ${calDate.getFullYear()}`;
+            const grid = document.getElementById('calGrid');
+            const dayLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+            const firstDay = new Date(calDate.getFullYear(), calDate.getMonth(), 1).getDay();
+            const daysInMonth = new Date(calDate.getFullYear(), calDate.getMonth() + 1, 0).getDate();
+            const daysInPrev = new Date(calDate.getFullYear(), calDate.getMonth(), 0).getDate();
+            const today = new Date();
+            const isCurrentMonth = calDate.getFullYear() === today.getFullYear() && calDate.getMonth() === today.getMonth();
+
+            let html = dayLabels.map(d => `<div class="cal-day-label">${d}</div>`).join('');
+            for (let i = 0; i < firstDay; i++) html += `<div class="cal-day other-month">${daysInPrev - firstDay + i + 1}</div>`;
+            for (let d = 1; d <= daysInMonth; d++) {
+                const isToday = isCurrentMonth && d === today.getDate();
+                const isSel = d === selectedDay && isCurrentMonth;
+                const evt = calEventDays[d];
+                html += `<div class="cal-day ${isToday && !isSel ? 'today' : ''} ${isSel ? 'selected' : ''} ${evt && !isSel ? 'has-event' : ''}" onclick="selectDay(${d})">${d}</div>`;
+            }
+            let rem = 42 - (firstDay + daysInMonth);
+            for (let i = 1; i <= rem; i++) html += `<div class="cal-day other-month">${i}</div>`;
+            grid.innerHTML = html;
+            if (selectedDay) renderDayEvents(selectedDay);
+        }
+
+        function changeMonth(dir) {
+            calDate = new Date(calDate.getFullYear(), calDate.getMonth() + dir, 1);
+            selectedDay = null; calEventDays = {};
+            // Rebuild events for new month
+            allMeetings.forEach(m => {
+                if (!m.date) return;
+                const d = new Date(m.date);
+                if (d.getFullYear() === calDate.getFullYear() && d.getMonth() === calDate.getMonth())
+                    calEventDays[d.getDate()] = 'meeting';
+            });
+            renderCalendar();
+            document.getElementById('dayEvents').innerHTML = `<div class="day-events-title">Select a day to see events</div>`;
+        }
+
+        function selectDay(d) {
+            selectedDay = d; renderCalendar();
+        }
+
+        function renderDayEvents(d) {
+            const y = calDate.getFullYear(), m = calDate.getMonth();
+            const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const dayMeetings = allMeetings.filter(ev => ev.date === dateStr);
+            const label = `${months[m]} ${d}, ${y}`;
+            const de = document.getElementById('dayEvents');
+            if (!dayMeetings.length) {
+                de.innerHTML = `<div class="day-events-title">📅 ${label}</div><div style="font-size:0.75rem;color:var(--muted);padding:4px 0">No events</div>`;
+                return;
+            }
+            de.innerHTML = `<div class="day-events-title">📅 ${label}</div>` + dayMeetings.map(ev => `
+    <div class="day-event-item">
+      <div class="day-event-color" style="background:var(--meeting)"></div>
+      <span>${esc(ev.title)}</span>
+      <span class="day-event-time">${esc(ev.time || '')}</span>
+    </div>`).join('');
+        }
+
+        // ─── ACTIVITY ──────────────────────────────────────────────────────────────
+        const iconMap = { calendar: '📅', alert: '⚠️', 'check-circle': '✅', mail: '📧' };
+        const dotTypeMap = { meeting: 'meeting', email_urgent: 'urgent', email_action: 'action', email_new: 'email', email: 'email' };
+        const badgeMap = { Meeting: 'meeting', Urgent: 'urgent', Action: 'action', FYI: 'fyi', Newsletter: 'newsletter' };
+
+        async function loadActivity() {
+            try {
+                const data = await api('/api/activity');
+                if (!data) return;
+                const list = document.getElementById('activityList');
+                if (!data.length) { list.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:0.76rem">No recent activity</div>'; return; }
+                list.innerHTML = data.map((a, i) => {
+                    const dotCls = dotTypeMap[a.type] || 'email';
+                    const badgeCls = badgeMap[a.badge] || (a.badge || '').toLowerCase();
+                    const icon = iconMap[a.icon] || '📧';
+                    return `<div class="activity-item" style="animation-delay:${i * 0.05}s">
+        <div class="activity-dot ${dotCls}">${icon}</div>
+        <div class="activity-info">
+          <div class="activity-name">${esc(a.title)}</div>
+          <div class="activity-desc">${esc(a.description)}</div>
+          <span class="activity-badge ${badgeCls}">${esc(a.badge)}</span>
+        </div>
+        <div class="activity-time">${relativeTime(a.time)}</div>
+      </div>`;
+                }).join('');
+            } catch (e) {/* silent */ }
+        }
+
+        // ─── INIT ──────────────────────────────────────────────────────────────────
+        async function init() {
+            renderCalendar();
+            await Promise.all([loadEmails(), loadTodayMeetings(), loadAllMeetings(), loadActivity()]);
+            // Auto-refresh every 5 minutes
+            setInterval(() => { loadEmails(); loadActivity(); }, 5 * 60 * 1000);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>
