@@ -43,7 +43,6 @@ class GmailService:
         if creds.expired and creds.refresh_token:
             try:
                 creds.refresh(GoogleAuthRequest())
-                # Update stored token so the caller can persist the new one
                 self.access_token = creds.token
             except Exception as e:
                 print(f"[GmailService] Token refresh failed: {e}")
@@ -130,7 +129,8 @@ class GmailService:
         label_ids = msg.get("labelIds", [])
         is_read = "UNREAD" not in label_ids
 
-        body = self._extract_body(msg.get("payload", {}))
+        # Extract both plain text (for AI) and HTML (for display)
+        body_plain, body_html = self._extract_body_both(msg.get("payload", {}))
 
         return {
             "message_id": msg["id"],
@@ -138,47 +138,56 @@ class GmailService:
             "sender_email": sender_email,
             "subject": subject,
             "date_str": date_str,
-            "body": body,
+            "body": body_plain,          # plain text for Gemini AI analysis
+            "body_html": body_html,      # raw HTML for iframe display
             "snippet": snippet,
             "is_read": is_read,
         }
 
-    def _extract_body(self, payload: dict, prefer_plain: bool = True) -> str:
+    def _extract_body_both(self, payload: dict):
         """
-        Recursively extract body text from a Gmail message payload.
-        Prefers text/plain; falls back to text/html (stripped of tags).
+        Recursively extract both plain text and HTML body from a Gmail payload.
+        Returns (plain_text, html_text) tuple.
         """
         mime_type = payload.get("mimeType", "")
+        data = payload.get("body", {}).get("data", "")
 
-        # Direct body (single-part message)
-        if mime_type in ("text/plain", "text/html"):
-            data = payload.get("body", {}).get("data", "")
-            if data:
-                text = base64.urlsafe_b64decode(data).decode("utf-8", errors="ignore")
-                if mime_type == "text/plain":
-                    return text
-                else:
-                    return self._strip_html(text)
+        if mime_type == "text/plain" and data:
+            text = base64.urlsafe_b64decode(data).decode("utf-8", errors="ignore")
+            return text, ""
 
-        # Multi-part — recurse into parts
+        if mime_type == "text/html" and data:
+            html = base64.urlsafe_b64decode(data).decode("utf-8", errors="ignore")
+            return self._strip_html(html), html
+
+        # Multi-part — recurse and aggregate
         parts = payload.get("parts", [])
         plain_body = ""
         html_body = ""
-        for part in parts:
-            result = self._extract_body(part, prefer_plain)
-            if part.get("mimeType") == "text/plain" and result:
-                plain_body = result
-            elif part.get("mimeType", "").startswith("text/html") and result:
-                html_body = result
-            elif result and not plain_body:
-                plain_body = result
 
-        return plain_body or html_body
+        for part in parts:
+            p, h = self._extract_body_both(part)
+            if p and not plain_body:
+                plain_body = p
+            if h and not html_body:
+                html_body = h
+
+        # If we have HTML but still no plain, derive plain from HTML
+        if html_body and not plain_body:
+            plain_body = self._strip_html(html_body)
+
+        return plain_body, html_body
 
     @staticmethod
     def _strip_html(html: str) -> str:
-        """Remove HTML tags and collapse whitespace."""
-        clean = re.sub(r"<[^>]+>", " ", html)
+        """Remove HTML tags, URLs from links, and collapse whitespace."""
+        # Remove entire <a href="...">...</a> blocks to avoid leaving raw URLs
+        clean = re.sub(r'<a\s[^>]*>.*?</a>', ' ', html, flags=re.IGNORECASE | re.DOTALL)
+        # Remove inline image tags
+        clean = re.sub(r'<img\s[^>]*>', ' ', clean, flags=re.IGNORECASE)
+        # Remove all remaining HTML tags
+        clean = re.sub(r"<[^>]+>", " ", clean)
+        # Collapse whitespace
         clean = re.sub(r"\s+", " ", clean).strip()
         return clean
 

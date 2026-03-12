@@ -26,11 +26,13 @@
             --newsletter: #a78bfa;
             --action: #f59e0b;
             --fyi: #34d399;
+            --form: #fb923c;
             --urgent-bg: rgba(255, 77, 109, 0.1);
             --meeting-bg: rgba(0, 198, 255, 0.1);
             --newsletter-bg: rgba(167, 139, 250, 0.1);
             --action-bg: rgba(245, 158, 11, 0.1);
             --fyi-bg: rgba(52, 211, 153, 0.1);
+            --form-bg: rgba(251, 146, 60, 0.1);
         }
 
         * {
@@ -1213,6 +1215,297 @@
             border: 1px solid var(--meeting);
             color: var(--meeting);
         }
+
+        /* PRIORITY DOTS */
+        .priority-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .priority-dot.high { background: var(--urgent); box-shadow: 0 0 5px var(--urgent); }
+        .priority-dot.medium { background: var(--action); }
+        .priority-dot.low { background: var(--muted); opacity: 0.5; }
+
+        /* FORM BADGE */
+        .tag.form { background: var(--form-bg); color: var(--form); }
+        .activity-badge.form { background: var(--form-bg); color: var(--form); }
+
+        /* NEEDS ATTENTION NOW SECTION */
+        .attention-section {
+            background: linear-gradient(90deg, rgba(255,77,109,0.12), rgba(255,77,109,0.04));
+            border-bottom: 1px solid rgba(255, 77, 109, 0.25);
+            padding: 10px 14px;
+            flex-shrink: 0;
+        }
+        .attention-header {
+            font-size: 0.63rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--urgent);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .attention-card {
+            background: rgba(255, 77, 109, 0.08);
+            border: 1px solid rgba(255, 77, 109, 0.2);
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            transition: background 0.15s;
+        }
+        .attention-card:hover { background: rgba(255,77,109,0.15); }
+        .attention-card-sender { color: var(--urgent); font-weight: 600; font-size: 0.72rem; margin-bottom: 2px; }
+        .attention-card-subject { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* CONFLICT MODAL */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+            z-index: 9999; display: flex; align-items: center; justify-content: center;
+            animation: fadeIn 0.15s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-box {
+            background: var(--surface2); border: 1px solid var(--border2);
+            border-radius: 14px; padding: 24px; max-width: 420px; width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .modal-title {
+            font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1rem;
+            margin-bottom: 6px; color: var(--action);
+        }
+        .modal-subtitle { font-size: 0.8rem; color: var(--muted2); margin-bottom: 16px; }
+        .conflict-item {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 0.8rem;
+        }
+        .conflict-item-title { font-weight: 600; margin-bottom: 2px; }
+        .conflict-item-time { color: var(--muted); font-size: 0.72rem; }
+        .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+
+        /* PENDING TASKS PANEL */
+        .pending-section {
+            padding: 14px 16px;
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .pending-header {
+            font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.82rem;
+            margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+        }
+        .pending-count {
+            background: var(--action-bg); color: var(--action);
+            font-size: 0.6rem; font-weight: 700; padding: 1px 6px;
+            border-radius: 20px;
+        }
+        .pending-item {
+            display: flex; align-items: flex-start; gap: 8px;
+            padding: 6px 0; border-bottom: 1px solid var(--border);
+            font-size: 0.77rem; color: var(--muted2);
+        }
+        .pending-item:last-child { border-bottom: none; }
+        .pending-dot { width: 6px; height: 6px; background: var(--action); border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+        .pending-from { color: var(--muted); font-size: 0.68rem; margin-top: 1px; }
+
+        /* GOOGLE CALENDAR TODAY */
+        .gcal-section {
+            padding: 10px 14px;
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .gcal-section::-webkit-scrollbar { width: 2px; }
+        .gcal-section::-webkit-scrollbar-thumb { background: var(--border); }
+        .gcal-header {
+            font-size: 0.63rem; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .gcal-event {
+            display: flex; align-items: center; gap: 8px;
+            padding: 5px 0; border-bottom: 1px solid var(--border);
+            font-size: 0.76rem;
+        }
+        .gcal-event:last-child { border-bottom: none; }
+        .gcal-dot { width: 8px; height: 8px; border-radius: 2px; background: var(--meeting); flex-shrink: 0; }
+        .gcal-time { color: var(--muted); font-size: 0.68rem; margin-left: auto; white-space: nowrap; }
+        .gcal-link { text-decoration: none; color: inherit; }
+        .gcal-link:hover { color: var(--meeting); }
+
+        /* ADD TO CALENDAR BUTTON */
+        .btn-calendar {
+            background: linear-gradient(135deg, rgba(0,198,255,0.15), rgba(0,114,255,0.1));
+            border: 1px solid rgba(0,198,255,0.35);
+            color: var(--meeting);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 7px 13px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-calendar:hover { background: var(--meeting-bg); border-color: var(--meeting); }
+
+        /* EMAIL HTML IFRAME */
+        .email-iframe {
+            width: 100%;
+            min-height: 280px;
+            border: none;
+            background: white;
+            border-radius: 11px;
+            margin-bottom: 16px;
+        }
+        /* CHAT WIDGET */
+        .chat-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 50px;
+            height: 50px;
+            border-radius: 25px;
+            background: linear-gradient(135deg, var(--meeting), #7c3aed);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        .chat-btn:hover {
+            transform: scale(1.05);
+        }
+        .chat-panel {
+            position: fixed;
+            bottom: 85px;
+            right: 24px;
+            width: 320px;
+            height: 400px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: fadeUp 0.2s ease;
+        }
+        .chat-header {
+            background: var(--surface2);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .chat-header button {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        .chat-header button:hover {
+            color: var(--text);
+        }
+        .chat-history {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .chat-history::-webkit-scrollbar {
+            width: 4px;
+        }
+        .chat-history::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+        .chat-msg {
+            max-width: 85%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        .chat-msg.user {
+            align-self: flex-end;
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border2);
+        }
+        .chat-msg.ai {
+            align-self: flex-start;
+            background: linear-gradient(135deg, rgba(0,198,255,0.06), rgba(124,58,237,0.06));
+            border: 1px solid rgba(0,198,255,0.18);
+            color: var(--text);
+        }
+        .chat-input-area {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid var(--border);
+            background: var(--surface2);
+        }
+        .chat-input-area input {
+            flex: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 8px 14px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.8rem;
+            outline: none;
+        }
+        .chat-input-area input:focus {
+            border-color: var(--meeting);
+        }
+        .chat-send {
+            background: var(--meeting);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-left: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.15s;
+        }
+        .chat-send:active {
+            transform: scale(0.95);
+        }
+        .chat-loading {
+            align-self: flex-start;
+            color: var(--muted);
+            font-size: 0.75rem;
+            font-style: italic;
+            padding: 4px 8px;
+        }
     </style>
 </head>
 
@@ -1276,8 +1569,15 @@
                     <div class="filter-tab" onclick="setFilter('urgent',this)">🔴 Urgent</div>
                     <div class="filter-tab" onclick="setFilter('meeting',this)">🔵 Meetings</div>
                     <div class="filter-tab" onclick="setFilter('action',this)">🟡 Action</div>
+                    <div class="filter-tab" onclick="setFilter('form',this)">📋 Forms</div>
                     <div class="filter-tab" onclick="setFilter('newsletter',this)">🟣 Newsletter</div>
                     <div class="filter-tab" onclick="setFilter('fyi',this)">🟢 FYI</div>
+                </div>
+
+                <!-- NEEDS ATTENTION NOW -->
+                <div id="attentionSection" class="attention-section" style="display:none">
+                    <div class="attention-header">🚨 Needs Attention Now</div>
+                    <div id="attentionList"></div>
                 </div>
 
                 <div class="email-list" id="emailList"></div>
@@ -1295,7 +1595,7 @@
 
             <!-- RIGHT PANEL -->
             <div class="right-panel">
-                <!-- CALENDAR -->
+                <!-- CALENDAR WIDGET -->
                 <div class="calendar-section">
                     <div class="cal-header">
                         <div class="cal-month" id="calMonth"></div>
@@ -1307,9 +1607,19 @@
                     <div class="cal-grid" id="calGrid"></div>
                 </div>
 
-                <!-- SELECTED DAY EVENTS -->
-                <div class="day-events" id="dayEvents">
-                    <div class="day-events-title">Select a day to see events</div>
+                <!-- TODAY'S GOOGLE CALENDAR EVENTS -->
+                <div class="gcal-section" id="gcalSection">
+                    <div class="gcal-header">📅 Today's Schedule</div>
+                    <div id="gcalList"><div style="color:var(--muted);font-size:0.75rem">Loading…</div></div>
+                </div>
+
+                <!-- PENDING TASKS -->
+                <div class="pending-section" id="pendingSection">
+                    <div class="pending-header">
+                        ✦ Pending Tasks
+                        <span class="pending-count" id="pendingCount">0</span>
+                    </div>
+                    <div id="pendingList"><div style="color:var(--muted);font-size:0.75rem">No pending tasks</div></div>
                 </div>
 
                 <!-- ACTIVITY BAR -->
@@ -1322,6 +1632,19 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- CONFLICT MODAL -->
+    <div id="conflictModal" class="modal-overlay" style="display:none">
+        <div class="modal-box">
+            <div class="modal-title">⚠️ Schedule Conflict</div>
+            <div class="modal-subtitle" id="conflictSubtitle">You already have events scheduled during this time.</div>
+            <div id="conflictList"></div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeConflictModal()">Cancel</button>
+                <button class="btn" style="background:var(--action);color:white" id="conflictAddAnyway" onclick="addEventAnyway()">Add Anyway</button>
+            </div>
         </div>
     </div>
 
@@ -1427,11 +1750,14 @@
                 const av = initials(e.sender_name, e.sender_email);
                 const color = avatarGradient(e.sender_name || e.sender_email || '');
                 const tags = [cat];
-                if (e.meeting_detected) tags.push('meeting');
+                if (e.meeting_detected && cat !== 'meeting') tags.push('meeting');
+                if (e.form_detected) tags.push('form');
+                const pri = (e.priority || 'low').toLowerCase();
                 return `<div class="email-card ${!e.is_read ? 'unread' : ''} ${activeEmailId === e.id ? 'active' : ''}"
       onclick="openEmail('${e.id}')" style="animation-delay:${i * 0.04}s">
       <div class="card-top">
         <div class="sender-row">
+          <div class="priority-dot ${pri}"></div>
           <div class="sender-av" style="background:${color}">${av}</div>
           <span class="email-sender">${esc(e.sender_name || e.sender_email || 'Unknown')}</span>
           ${!e.is_read ? '<div class="unread-dot"></div>' : ''}
@@ -1440,7 +1766,7 @@
       </div>
       <div class="email-subject">${esc(e.subject || '(No Subject)')}</div>
       <div class="email-snippet">${esc(e.summary || e.snippet || '')}</div>
-      <div class="card-tags">${tags.map(t => `<span class="tag ${t}">${t}</span>`).join('')}${(e.action_items || []).length ? `<span class="tag action">+${e.action_items.length} tasks</span>` : ''}</div>
+      <div class="card-tags">${tags.map(t => `<span class="tag ${t}">${t === 'form' ? '📋 Form' : t}</span>`).join('')}${(e.action_items || []).length ? `<span class="tag action">+${e.action_items.length} tasks</span>` : ''}</div>
     </div>`;
             }).join('');
         }
@@ -1466,6 +1792,8 @@
                 allEmails = data;
                 applyFilters();
                 updateUnreadBadge();
+                renderAttentionSection();
+                renderPendingTasks();
             } catch (e) {
                 document.getElementById('emailList').innerHTML =
                     `<div class="empty-state" style="padding:40px;height:auto"><div class="empty-icon">⚠️</div><div>${esc(e.message)}</div></div>`;
@@ -1487,12 +1815,52 @@
                 const res = await api('/api/emails/sync', { method: 'POST' });
                 if (!res) return;
                 toast(res.message, 'success');
-                await Promise.all([loadEmails(), loadTodayMeetings(), loadAllMeetings(), loadActivity()]);
+                await Promise.all([loadEmails(), loadTodayMeetings(), loadAllMeetings(), loadActivity(), loadCalendarEvents()]);
             } catch (e) {
                 toast('Sync failed: ' + e.message, 'error');
             } finally {
                 if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
             }
+        }
+
+        // ─── NEEDS ATTENTION NOW ───────────────────────────────────────────────────
+        function renderAttentionSection() {
+            const urgent = allEmails.filter(e => e.needs_attention_now || (e.priority === 'high'));
+            const sec = document.getElementById('attentionSection');
+            const list = document.getElementById('attentionList');
+            if (!urgent.length) { sec.style.display = 'none'; return; }
+            sec.style.display = 'block';
+            list.innerHTML = urgent.slice(0, 3).map(e =>
+                `<div class="attention-card" onclick="openEmail('${e.id}')">
+          <div class="attention-card-sender">🔴 ${esc(e.sender_name || e.sender_email || 'Unknown')}</div>
+          <div class="attention-card-subject">${esc(e.subject || '(No Subject)')}</div>
+        </div>`
+            ).join('');
+        }
+
+        // ─── PENDING TASKS ─────────────────────────────────────────────────────────
+        function renderPendingTasks() {
+            const tasks = [];
+            allEmails.forEach(e => {
+                if (!e.waiting && e.action_items && e.action_items.length) {
+                    e.action_items.forEach(item => tasks.push({ item, from: e.sender_name || e.sender_email || 'Unknown', emailId: e.id }));
+                }
+            });
+            const sec = document.getElementById('pendingSection');
+            const list = document.getElementById('pendingList');
+            const count = document.getElementById('pendingCount');
+            if (!tasks.length) {
+                count.textContent = '0';
+                list.innerHTML = '<div style="color:var(--muted);font-size:0.75rem">No pending tasks</div>';
+                return;
+            }
+            count.textContent = tasks.length;
+            list.innerHTML = tasks.slice(0, 8).map(t =>
+                `<div class="pending-item" onclick="openEmail('${t.emailId}')" style="cursor:pointer">
+          <div class="pending-dot"></div>
+          <div><div>${esc(t.item)}</div><div class="pending-from">From: ${esc(t.from)}</div></div>
+        </div>`
+            ).join('');
         }
 
         // ─── OPEN EMAIL DETAIL ─────────────────────────────────────────────────────
@@ -1535,11 +1903,32 @@
       </div>`).join('')}
     </div>` : '';
 
+            const formHtml = e.form_detected ? `
+    <div class="ai-box" style="border-color: rgba(251,146,60,0.3); background: linear-gradient(135deg, rgba(251,146,60,0.07), rgba(251,146,60,0.03)); margin-bottom:16px">
+      <div class="ai-label" style="color:var(--form)">📋 Form / Document Required</div>
+      <div class="ai-text">${esc(e.form_description || 'A form or document was detected in this email requiring your action.')}</div>
+    </div>` : '';
+
             const meetingHtml = e.meeting_detected ? `
     <div class="ai-box" style="margin-bottom:16px">
       <div class="ai-label">📅 Meeting Detected</div>
       <div class="ai-text"><strong>${esc(e.meeting_title || 'Meeting')}</strong>${e.meeting_date ? ' · ' + esc(e.meeting_date) : ''}${e.meeting_time ? ' at ' + esc(e.meeting_time) : ''}</div>
+      <div style="margin-top:10px">
+        <button class="btn-calendar" onclick="addToCalendar('${e.id}')">
+          📅 Add to Calendar
+        </button>
+      </div>
     </div>` : '';
+
+            // Render body: prefer HTML in iframe, fallback to plain text
+            let bodyHtml;
+            if (e.body_html) {
+                bodyHtml = `<iframe id="emailBodyFrame" class="email-iframe" sandbox="allow-same-origin"
+          srcdoc="" onload="this.style.height=(this.contentWindow.document.body.scrollHeight+30)+'px'">
+        </iframe>`;
+            } else {
+                bodyHtml = `<div class="email-body">${esc(e.body || e.snippet || '(No content)')}</div>`;
+            }
 
             document.getElementById('detailPanel').innerHTML = `
     <div class="detail-subject">${esc(e.subject || '(No Subject)')}</div>
@@ -1551,19 +1940,28 @@
       </div>
       <div class="d-time">${esc(timeStr)}</div>
     </div>
-    <div class="detail-tags">${tags.map(t => `<span class="tag ${t}">${t}</span>`).join('')}</div>
+    <div class="detail-tags">${tags.map(t => `<span class="tag ${t}">${t}</span>`).join('')}${e.priority === 'high' ? '<span class="tag urgent" style="margin-left:auto">🔴 High Priority</span>' : ''}</div>
     <div class="ai-box">
       <div class="ai-label">✦ AI Summary</div>
       <div class="ai-text">${esc(e.summary || 'No summary available.')}</div>
     </div>
+    ${formHtml}
     ${meetingHtml}
     ${actionsHtml}
     <div class="section-lbl" style="margin-bottom:10px">Original Email</div>
-    <div class="email-body">${esc(e.body || e.snippet || '(No content)')}</div>
+    ${bodyHtml}
     <div class="reply-bar">
       <input type="text" placeholder="Reply to ${esc(e.sender_name || 'sender')}…" id="replyInput"/>
       <button class="reply-send" onclick="sendReply()">&#10148;</button>
     </div>`;
+
+            // Inject HTML body into iframe safely after render
+            if (e.body_html) {
+                const frame = document.getElementById('emailBodyFrame');
+                if (frame) {
+                    frame.srcdoc = `<!DOCTYPE html><html><head><style>body{font-family:sans-serif;font-size:14px;color:#333;padding:12px;margin:0;word-break:break-word;}</style></head><body>${e.body_html}</body></html>`;
+                }
+            }
         }
 
         function toggleCheck(i) {
@@ -1573,6 +1971,72 @@
         function sendReply() {
             const inp = document.getElementById('replyInput');
             if (inp && inp.value.trim()) { toast('Reply queued (send not yet wired)', 'info'); inp.value = ''; }
+        }
+
+        // ─── ADD TO CALENDAR ───────────────────────────────────────────────────────
+        let _pendingCalendarEmailId = null;
+        let _pendingCalendarData = null;
+
+        async function addToCalendar(emailId) {
+            _pendingCalendarEmailId = emailId;
+            const email = allEmails.find(e => e.id === emailId) || {};
+            toast('Checking calendar…', 'info');
+            try {
+                const res = await api(`/api/emails/${emailId}/add-to-calendar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                if (!res) return;
+                if (res.status === 'conflict') {
+                    _pendingCalendarData = { emailId };
+                    showConflictModal(res);
+                } else if (res.status === 'created') {
+                    toast('✅ Event added to your calendar!', 'success');
+                    if (res.event_url) window.open(res.event_url, '_blank');
+                    loadCalendarEvents();
+                }
+            } catch (e) {
+                toast('Calendar error: ' + e.message, 'error');
+            }
+        }
+
+        function showConflictModal(res) {
+            document.getElementById('conflictSubtitle').textContent = res.message;
+            const list = document.getElementById('conflictList');
+            list.innerHTML = (res.conflicts || []).map(c => {
+                const startStr = c.start ? new Date(c.start).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+                const endStr = c.end ? new Date(c.end).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+                return `<div class="conflict-item">
+          <div class="conflict-item-title">${esc(c.title)}</div>
+          <div class="conflict-item-time">${startStr}${endStr ? ' – ' + endStr : ''}</div>
+        </div>`;
+            }).join('');
+            document.getElementById('conflictModal').style.display = 'flex';
+        }
+
+        function closeConflictModal() {
+            document.getElementById('conflictModal').style.display = 'none';
+            _pendingCalendarData = null;
+        }
+
+        async function addEventAnyway() {
+            if (!_pendingCalendarData) return;
+            closeConflictModal();
+            toast('Adding event despite conflict…', 'info');
+            // Force-add by passing override (same endpoint, backend will just re-add)
+            try {
+                const res = await api(`/api/emails/${_pendingCalendarData.emailId}/add-to-calendar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ override_conflict: true })
+                });
+                if (res && res.event_url) {
+                    toast('✅ Event added!', 'success');
+                    window.open(res.event_url, '_blank');
+                    loadCalendarEvents();
+                }
+            } catch (e) { toast('Failed: ' + e.message, 'error'); }
         }
 
         // ─── MEETING BANNER ────────────────────────────────────────────────────────
@@ -1653,18 +2117,30 @@
             const y = calDate.getFullYear(), m = calDate.getMonth();
             const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             const dayMeetings = allMeetings.filter(ev => ev.date === dateStr);
-            const label = `${months[m]} ${d}, ${y}`;
-            const de = document.getElementById('dayEvents');
-            if (!dayMeetings.length) {
-                de.innerHTML = `<div class="day-events-title">📅 ${label}</div><div style="font-size:0.75rem;color:var(--muted);padding:4px 0">No events</div>`;
-                return;
+            // Note: day events popup removed in favour of gcal section - just update calGrid highlight
+        }
+
+        // ─── GOOGLE CALENDAR TODAY ─────────────────────────────────────────────────
+        async function loadCalendarEvents() {
+            const list = document.getElementById('gcalList');
+            try {
+                const data = await api('/api/emails/calendar/today');
+                if (!data || !data.length) {
+                    list.innerHTML = '<div style="color:var(--muted);font-size:0.75rem;padding:4px 0">No events today</div>';
+                    return;
+                }
+                list.innerHTML = data.map(ev => {
+                    const startStr = ev.start ? new Date(ev.start).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'All day';
+                    const link = ev.link ? `href="${ev.link}" target="_blank"` : '';
+                    return `<div class="gcal-event">
+          <div class="gcal-dot"></div>
+          <a class="gcal-link" ${link}>${esc(ev.title)}</a>
+          <span class="gcal-time">${startStr}</span>
+        </div>`;
+                }).join('');
+            } catch (e) {
+                list.innerHTML = '<div style="color:var(--muted);font-size:0.75rem">Unable to load</div>';
             }
-            de.innerHTML = `<div class="day-events-title">📅 ${label}</div>` + dayMeetings.map(ev => `
-    <div class="day-event-item">
-      <div class="day-event-color" style="background:var(--meeting)"></div>
-      <span>${esc(ev.title)}</span>
-      <span class="day-event-time">${esc(ev.time || '')}</span>
-    </div>`).join('');
         }
 
         // ─── ACTIVITY ──────────────────────────────────────────────────────────────
@@ -1698,12 +2174,115 @@
         // ─── INIT ──────────────────────────────────────────────────────────────────
         async function init() {
             renderCalendar();
-            await Promise.all([loadEmails(), loadTodayMeetings(), loadAllMeetings(), loadActivity()]);
+            await Promise.all([loadEmails(), loadTodayMeetings(), loadAllMeetings(), loadActivity(), loadCalendarEvents()]);
             // Auto-refresh every 5 minutes
-            setInterval(() => { loadEmails(); loadActivity(); }, 5 * 60 * 1000);
+            setInterval(() => { loadEmails(); loadActivity(); loadCalendarEvents(); }, 5 * 60 * 1000);
         }
 
         document.addEventListener('DOMContentLoaded', init);
+    </script>
+    
+    <!-- CHAT WIDGET HTML -->
+    <button id="chatBtn" class="chat-btn" title="Ask MailMind AI">💬</button>
+    <div id="chatPanel" class="chat-panel" style="display: none;">
+        <div class="chat-header">
+            <span>✧ Ask MailMind AI</span>
+            <button id="chatClose">×</button>
+        </div>
+        <div id="chatHistory" class="chat-history"></div>
+        <div class="chat-input-area">
+            <input type="text" id="chatInput" placeholder="Type a message..." />
+            <button id="chatSend" class="chat-send">▶</button>
+        </div>
+    </div>
+
+    <!-- CHAT WIDGET LOGIC -->
+    <script>
+        (function() {
+            const chatBtn = document.getElementById('chatBtn');
+            const chatPanel = document.getElementById('chatPanel');
+            const chatClose = document.getElementById('chatClose');
+            const chatInput = document.getElementById('chatInput');
+            const chatSend = document.getElementById('chatSend');
+            const chatHistory = document.getElementById('chatHistory');
+
+            console.log("Chat widget script running, chatBtn:", chatBtn);
+
+            function toggleChat() {
+                console.log("Chat toggled!", chatPanel.style.display);
+                const isHidden = window.getComputedStyle(chatPanel).display === 'none';
+                if (isHidden) {
+                    chatPanel.style.display = 'flex';
+                    chatInput.focus();
+                } else {
+                    chatPanel.style.display = 'none';
+                }
+            }
+
+            // Expose for explicit onclick if needed, though we use addEventListener
+            window.toggleChat = toggleChat;
+
+            if (chatBtn) chatBtn.addEventListener('click', toggleChat);
+            if (chatClose) chatClose.addEventListener('click', toggleChat);
+
+            function appendMessage(text, isUser, isError = false) {
+                const div = document.createElement('div');
+                div.className = `chat-msg ${isUser ? 'user' : 'ai'}`;
+                if (isError) {
+                    div.style.color = "var(--urgent)";
+                    div.style.borderColor = "var(--urgent)";
+                }
+                div.textContent = text;
+                chatHistory.appendChild(div);
+                setTimeout(() => { chatHistory.scrollTop = chatHistory.scrollHeight; }, 10);
+            }
+
+            async function sendChatMessage() {
+                const msg = chatInput.value.trim();
+                if (!msg) return;
+
+                appendMessage(msg, true);
+                chatInput.value = '';
+
+                const loadingId = 'chat-loading-' + Date.now();
+                const loadingDiv = document.createElement('div');
+                loadingDiv.id = loadingId;
+                loadingDiv.className = 'chat-loading';
+                loadingDiv.textContent = 'Thinking...';
+                chatHistory.appendChild(loadingDiv);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+
+                try {
+                    const res = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: msg, history: [] })
+                    });
+
+                    document.getElementById(loadingId)?.remove();
+
+                    if (!res.ok) throw new Error('API Error');
+                    const data = await res.json();
+                    
+                    const reply = data.reply || "";
+                    if (reply.startsWith("Error:")) {
+                        appendMessage(reply, false, true);
+                    } else {
+                        appendMessage(reply, false);
+                    }
+                } catch (err) {
+                    document.getElementById(loadingId)?.remove();
+                    appendMessage("Sorry, I couldn't reach the server.", false, true);
+                }
+            }
+
+            if (chatSend) chatSend.addEventListener('click', sendChatMessage);
+            if (chatInput) {
+                chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') sendChatMessage();
+                });
+            }
+        })();
     </script>
 </body>
 

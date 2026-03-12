@@ -76,7 +76,9 @@ async def get_activity(
             .limit(10)
             .all()
         )
+        already_added_email_ids = set()
         for e in urgent_emails:
+            already_added_email_ids.add(e.id)
             items.append(ActivityItem(
                 id=f"email-urgent-{e.id}",
                 type="email_urgent",
@@ -100,6 +102,7 @@ async def get_activity(
             .all()
         )
         for e in action_emails:
+            already_added_email_ids.add(e.id)
             action_items = e.get_action_items()
             desc = action_items[0] if action_items else (e.summary or "Pending action item.")
             items.append(ActivityItem(
@@ -113,7 +116,6 @@ async def get_activity(
             ))
 
         # ── Recent new emails (last 6h, not already covered) ──────────────────
-        recent_ids = {i.id.split("-", 2)[-1] for i in items}
         recent_emails = (
             db.query(Email)
             .filter(
@@ -126,7 +128,7 @@ async def get_activity(
             .all()
         )
         for e in recent_emails:
-            if e.id not in recent_ids:
+            if e.id not in already_added_email_ids:
                 items.append(ActivityItem(
                     id=f"email-new-{e.id}",
                     type="email_new",

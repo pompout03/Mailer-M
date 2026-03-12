@@ -1,16 +1,30 @@
 import asyncio
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from database import get_db
 from models import Email, Meeting, EmailMessage, EmailStats
 from auth import get_current_user
 from gmail_service import GmailService
 from gemini_service import analyze_emails_batch
+from calendar_service import check_calendar_conflicts, add_calendar_event, get_todays_events
 
 router = APIRouter(prefix="/api/emails", tags=["emails"])
+
+
+# ── Pydantic models for new endpoints ─────────────────────────────────────────
+
+class CalendarAddRequest(BaseModel):
+    """Request body for adding a meeting to Google Calendar."""
+    title: Optional[str] = None
+    date: Optional[str] = None
+    time: Optional[str] = None
+    duration_minutes: Optional[int] = 30
+    description: Optional[str] = ""
+    override_conflict: Optional[bool] = False
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -27,10 +41,6 @@ async def get_emails(
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user),
 ):
-    """
-    Return all cached emails for the authenticated user, newest first.
-    If the cache is empty, trigger a first-time sync automatically.
-    """
     try:
         from models import User
         emails = (
@@ -40,7 +50,6 @@ async def get_emails(
             .all()
         )
 
-        # Auto-sync on first visit
         if not emails:
             user = db.query(User).filter(User.id == user_id).first()
             if user and user.google_access_token:
@@ -64,13 +73,9 @@ async def get_email_stats(
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user),
 ):
-    """Return per-category email counts for the sidebar badges."""
     try:
         emails = db.query(Email).filter(Email.user_id == user_id).all()
-        stats = EmailStats(
-            total=len(emails),
-            unread=sum(1 for e in emails if not e.is_read),
-        )
+        stats = EmailStats(total=len(emails), unread=sum(1 for e in emails if not e.is_read))
         for e in emails:
             cat = (e.category or "fyi").lower()
             if cat == "urgent":
@@ -88,13 +93,53 @@ async def get_email_stats(
         raise HTTPException(status_code=500, detail=f"Failed to fetch stats: {e}")
 
 
+@router.get("/calendar/today")
+async def get_today_calendar(
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        from models import User
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user or not user.google_access_token:
+            return []
+        events = await asyncio.to_thread(
+            get_todays_events,
+            user.google_access_token,
+            user.google_refresh_token,
+        )
+        return events
+    except Exception as e:
+        print(f"[/calendar/today] Error: {e}")
+        return []
+
+
+@router.post("/sync")
+async def sync_emails(
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user),
+):
+    try:
+        from models import User
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user or not user.google_access_token:
+            raise HTTPException(status_code=400, detail="No Gmail token available — please re-authenticate.")
+
+        new_count = await _sync_emails(user, db)
+        return {"status": "ok", "new_emails": new_count, "message": f"Synced {new_count} new email(s)."}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Sync failed: {e}")
+
+
 @router.get("/{email_id}", response_model=EmailMessage)
 async def get_email(
     email_id: str,
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user),
 ):
-    """Return a single email by its internal DB id. Marks it as read."""
     try:
         email = (
             db.query(Email)
@@ -116,28 +161,76 @@ async def get_email(
         raise HTTPException(status_code=500, detail=f"Failed to fetch email: {e}")
 
 
-@router.post("/sync")
-async def sync_emails(
+@router.post("/{email_id}/add-to-calendar")
+async def add_email_to_calendar(
+    email_id: str,
+    request: CalendarAddRequest,
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user),
 ):
-    """
-    Force re-fetch the latest 20 emails from Gmail, run Gemini analysis,
-    and store/update them in the database.  Returns a summary of what changed.
-    """
     try:
         from models import User
+        email = (
+            db.query(Email)
+            .filter(Email.id == email_id, Email.user_id == user_id)
+            .first()
+        )
+        if not email:
+            raise HTTPException(status_code=404, detail="Email not found.")
+
         user = db.query(User).filter(User.id == user_id).first()
         if not user or not user.google_access_token:
-            raise HTTPException(status_code=400, detail="No Gmail token available — please re-authenticate.")
+            raise HTTPException(status_code=400, detail="No Google token — please re-authenticate.")
 
-        new_count = await _sync_emails(user, db)
-        return {"status": "ok", "new_emails": new_count, "message": f"Synced {new_count} new email(s)."}
+        title = request.title or email.meeting_title or email.subject or "Meeting"
+        date = request.date or email.meeting_date or ""
+        time = request.time or email.meeting_time or ""
+        duration = request.duration_minutes or int(email.meeting_duration or 30)
+        description = request.description or f"Added from email: {email.subject}"
+
+        if not date:
+            raise HTTPException(status_code=400, detail="No meeting date available. Please provide a date.")
+
+        if not request.override_conflict:
+            conflicts = await asyncio.to_thread(
+                check_calendar_conflicts,
+                user.google_access_token,
+                user.google_refresh_token,
+                date,
+                time,
+                duration,
+            )
+            if conflicts:
+                return {
+                    "status": "conflict",
+                    "message": f"You have {len(conflicts)} conflicting event(s) during this time.",
+                    "conflicts": conflicts,
+                }
+
+        event_link = await asyncio.to_thread(
+            add_calendar_event,
+            user.google_access_token,
+            user.google_refresh_token,
+            title,
+            date,
+            time,
+            duration,
+            description,
+        )
+
+        if event_link:
+            return {
+                "status": "created",
+                "message": f"Event '{title}' added to your calendar.",
+                "event_url": event_link,
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to create calendar event.")
 
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Sync failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Calendar error: {e}")
 
 
 # ── Internal Sync Logic ────────────────────────────────────────────────────────
@@ -145,27 +238,28 @@ async def sync_emails(
 async def _sync_emails(user, db: Session) -> int:
     """
     Fetch emails from Gmail, run Gemini analysis, persist to DB.
-    Also creates Meeting records for any meetings detected.
     Returns the number of newly stored emails.
     """
     from models import Meeting
 
     gmail = GmailService(user.google_access_token, user.google_refresh_token)
 
-    # Fetch in a thread since the Google client is synchronous
+    # Gmail client is sync — run in thread
     raw_emails = await asyncio.to_thread(gmail.fetch_emails, 20)
     if not raw_emails:
         return 0
 
-    # Run Gemini analysis in a thread
-    analyses = await asyncio.to_thread(analyze_emails_batch, raw_emails)
+    # analyze_emails_batch is now async — await it directly
+    analyses = await analyze_emails_batch(raw_emails)
 
     new_count = 0
     for raw, analysis in zip(raw_emails, analyses):
-        # Skip if already in DB
         existing = db.query(Email).filter(Email.message_id == raw["message_id"]).first()
         if existing:
             continue
+
+        meeting_info = analysis.get("meeting", {})
+        duration_val = meeting_info.get("duration_minutes", 30)
 
         email_row = Email(
             user_id=user.id,
@@ -174,28 +268,34 @@ async def _sync_emails(user, db: Session) -> int:
             sender_email=raw.get("sender_email"),
             subject=raw.get("subject"),
             body=raw.get("body"),
+            body_html=raw.get("body_html"),
             snippet=raw.get("snippet"),
             date_str=raw.get("date_str"),
             is_read=raw.get("is_read", False),
             category=analysis.get("category", "fyi"),
+            priority=analysis.get("priority", "low"),
+            needs_attention_now=analysis.get("needs_attention_now", False),
+            waiting=analysis.get("waiting", False),
             summary=analysis.get("summary"),
-            meeting_detected=analysis.get("meeting", {}).get("detected", False),
-            meeting_title=analysis.get("meeting", {}).get("title"),
-            meeting_date=analysis.get("meeting", {}).get("date"),
-            meeting_time=analysis.get("meeting", {}).get("time"),
+            form_detected=analysis.get("form_detected", False),
+            form_description=analysis.get("form_description", ""),
+            meeting_detected=meeting_info.get("detected", False),
+            meeting_title=meeting_info.get("title"),
+            meeting_date=meeting_info.get("date"),
+            meeting_time=meeting_info.get("time"),
+            meeting_duration=str(duration_val) if duration_val else "30",
         )
         email_row.set_action_items(analysis.get("action_items", []))
         db.add(email_row)
-        db.flush()  # get email_row.id assigned
+        db.flush()
 
-        # Create Meeting record if a meeting was detected
-        if email_row.meeting_detected and analysis.get("meeting", {}).get("title"):
+        if email_row.meeting_detected and meeting_info.get("title"):
             meeting = Meeting(
                 user_id=user.id,
                 email_id=email_row.id,
-                title=analysis["meeting"]["title"],
-                date=analysis["meeting"].get("date"),
-                time=analysis["meeting"].get("time"),
+                title=meeting_info["title"],
+                date=meeting_info.get("date"),
+                time=meeting_info.get("time"),
                 source_email_subject=raw.get("subject"),
             )
             db.add(meeting)
@@ -204,7 +304,7 @@ async def _sync_emails(user, db: Session) -> int:
 
     db.commit()
 
-    # Update user's access token in case it was refreshed
+    # Persist refreshed token if it changed
     user.google_access_token = gmail.access_token
     db.commit()
 
