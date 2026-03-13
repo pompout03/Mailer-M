@@ -17,7 +17,7 @@ from database import engine, get_db
 import models
 from models import User
 import auth
-from routers import emails, meetings, activity
+from routers import emails, meetings, activity, risc
 from gemini_service import chat as gemini_chat
 
 load_dotenv()
@@ -69,6 +69,7 @@ templates = Jinja2Templates(directory="templates")
 app.include_router(emails.router)
 app.include_router(meetings.router)
 app.include_router(activity.router)
+app.include_router(risc.router)
 
 
 # ── Chat (Gemini Test) ────────────────────────────────────────────────────────
