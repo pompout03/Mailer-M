@@ -52,7 +52,7 @@ app.add_middleware(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000", "https://accounts.google.com"],
+    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000", "https://accounts.google.com", "https://mailer-m.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -12,7 +12,7 @@ load_dotenv()
 # -- Configure Gemini (new google.genai SDK) ------------------------------------
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 _client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
-_MODEL_NAME = "gemini-2.0-flash-001"
+_MODEL_NAME = "gemini-2.5-flash"
 
 # -- Default fallback response --------------------------------------------------
 _DEFAULT_ANALYSIS = {

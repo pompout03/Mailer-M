@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
 # Ensure insecure transport is allowed for local development
-os.environ['AUTHLIB_INSECURE_TRANSPORT'] = '1'
+# os.environ['AUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 load_dotenv()
 
