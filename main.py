@@ -45,8 +45,8 @@ app = FastAPI(
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SECRET_KEY", "fallback-secret-key-change-me"),
-    same_site="lax",
-    https_only=False,
+    same_site="none",
+    https_only=True,
     max_age=3600,
 )
 
