@@ -90,6 +90,7 @@ async def chat_endpoint(body: ChatMessage):
 async def login(request: Request):
     try:
         redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/callback")
+        print("[DEBUG] Redirect URI:", redirect_uri)
         return await auth.oauth.google.authorize_redirect(request, redirect_uri)
     except Exception as e:
         print(f"Login error: {e}")
