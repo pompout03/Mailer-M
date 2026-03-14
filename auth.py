@@ -16,12 +16,14 @@ config_data = {
     'GOOGLE_CLIENT_ID': os.getenv('GOOGLE_CLIENT_ID', ''),
     'GOOGLE_CLIENT_SECRET': os.getenv('GOOGLE_CLIENT_SECRET', ''),
 }
-starlette_config = Config(environ=config_data)
 
-oauth = OAuth(starlette_config)
+
+oauth = OAuth()
 
 oauth.register(
     name='google',
+    client_id=config_data['GOOGLE_CLIENT_ID'],
+    client_secret=config_data['GOOGLE_CLIENT_SECRET'],
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={
         # Keep all scopes so existing refresh tokens stay valid
